@@ -72,9 +72,3 @@ Whether you need to generate targeted practice quizzes from a 100-page PDF, extr
 * Node.js & npm / Python 3.x installed locally
 * Git configured on your machine
 
-### Installation & Setup
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/ibtihel11/MemoZip.git
-   cd MemoZip
