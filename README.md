@@ -1,247 +1,80 @@
-1. Functional requirements
-A. User & authentication
-The user shall be able to create an account.
-The user shall be able to log in and log out.
-The user shall have access only to their own documents and generated resources.
-B. Document management
-The user shall be able to upload a course/document in PDF format.
-The system shall validate the uploaded file.
-The system shall extract the textual content of the document.
-The system shall analyze the document and identify its main topics/concepts.
-The user shall be able to view their uploaded documents.
-The user shall be able to delete and rename documents.
-C. Quiz generation
-The user shall be able to generate a quiz from an uploaded document.
-The user shall be able to choose the number of questions.
-The user shall be able to choose the difficulty.
-The user shall be able to choose question types.
-The AI shall generate questions based on the document content.
-Each question shall be associated with a topic.
-Questions shall have an expected answer.
-The system shall provide explanations for answers.
-D. Quiz taking
-The user shall be able to answer generated questions.
-The user shall be able to navigate between questions.
-The user shall be able to submit a quiz.
-The system shall calculate the user's score.
-The system shall evaluate each answer.
-The system shall display the correct answers and explanations.
-E. Performance analysis
+# MemoZip 🧠📄
 
-After completing a quiz, the system shall provide more than just a score.
+> An AI-powered study assistant that transforms static course documents into interactive learning experiences, featuring automated quiz generation, intelligent summaries, and context-aware Q&A.
 
-It shall show:
+---
 
-Overall score
-Number of correct/incorrect answers
-Performance by topic
-Strong topics
-Weak topics
-Questions answered incorrectly
-Explanations for mistakes
+## 🚀 Overview
 
-For example:
+**MemoZip** is a full-stack learning management and enhancement platform designed to help students and professionals master complex material faster. By leveraging document parsing and Large Language Models (LLMs), MemoZip bridges the gap between passive reading and active recall. 
 
-Overall: 76%
+Whether you need to generate targeted practice quizzes from a 100-page PDF, extract structured topic summaries, or query course material via RAG (Retrieval-Augmented Generation), MemoZip keeps your learning organized in a unified library.
 
-TCP                 90%  ✓
-OSI Model           84%  ✓
-HTTP                71%
-DNS                 52%  !
-Congestion Control  41%  !
-F. Quiz saving & history
-The user shall be able to save a generated quiz.
-A saved quiz shall retain its questions and source document.
-The user shall be able to retake a saved quiz.
-Each retake shall create a new attempt.
-The latest attempt shall be displayed as the current result.
-Previous attempts shall remain accessible as history.
-The system shall allow the user to compare their performance over attempts.
+---
 
-So technically, results aren't actually deleted/replaced. The UI simply treats the newest result as the current one while maintaining the history.
+## ✨ Key Features & Scope
 
-G. AI-generated summaries
-The user shall be able to generate a summary from an uploaded document.
-The AI shall identify the major concepts.
-The summary shall be structured by topic/section.
-The summary shall highlight important points.
-The user shall be able to save a summary.
-The user shall be able to rename and delete saved summaries.
-H. Course Q&A
-The user shall be able to ask questions about an uploaded course.
-The system shall retrieve relevant content from the document.
-The AI shall generate an answer based primarily on the uploaded material.
-The system should indicate the relevant document section/page when possible.
-The user shall be able to ask follow-up questions.
+### 1. Core Modules (MVP)
+* **Authentication & User Management:** Secure account creation, login/logout, and strict data isolation between users.
+* **Document Management:** PDF upload with automated file validation, text extraction, and topic concept identification. Users can view, rename, and delete files.
+* **Intelligent Quiz Generation:** On-the-fly quiz creation with customizable question counts, difficulties, and question types. Each question maps to specific topics with expected answers and explanations.
+* **Quiz Taking & History:** Interactive testing interface with real-time scoring, detailed mistake breakdowns, and versioned attempt history allowing users to track their progress over time.
+* **AI Summarization:** Automated document summarization structured by topic/section, highlighting major concepts and definitions.
+* **Personal Library:** Hierarchical organization using custom folders, resource moving, and multi-type filtering.
+* **UI/UX:** Fully responsive interface with native **Dark and Light mode** support.
 
-This is your RAG component.
+### 2. Should Have (Advanced Scope)
+* **Course Q&A (RAG):** Context-aware chatbot that queries uploaded course text to provide accurate answers backed by source page/section references.
+* **Semantic Evaluation:** Smart evaluation of short-answer questions.
+* **Resource Search:** Fast search and filtering across the user's personal library.
 
-I. Library & organization
-The user shall have a personal library.
-The library shall contain documents, quizzes, and summaries.
-The user shall be able to create folders.
-The user shall be able to rename/delete folders.
-The user shall be able to move resources between folders.
-The user shall be able to search resources.
-The user shall be able to filter resources by type.
+### 3. Future Roadmap (Post-MVP)
+* **Adaptive Learning:** Topic mastery tracking, predictive modeling, and personalized question/review recommendations.
+* **Enhanced Formats:** Spaced repetition and automated flashcard generation.
 
-Example:
+---
 
-📁 Machine Learning
+## 🛠️ Tech Stack & Architecture
 
-   📄 ML Course.pdf
-   📝 ML Summary
-   🧠 Classification Quiz
-   🧠 Regression Quiz
-2. AI requirements
+*(Tailor this section based on your specific implementation stack)*
+* **Frontend:** React, Next.js / TypeScript, Tailwind CSS (Dark/Light mode support)
+* **Backend:** Node.js, Express / Python (Flask/FastAPI for AI workflows)
+* **AI & Processing:** PyTorch / LangChain, LLM Integration, PDF parsing libraries
+* **Database & Storage:** MongoDB / PostgreSQL with proper data isolation and migration management
 
-This is where I'd distinguish what the AI must do from the general application.
+---
 
-Document understanding
+## 📋 Requirements Summary
 
-The AI should be able to:
+### Functional Requirements
+* **A. Auth:** Account creation, secure session handling, strict data privacy.
+* **B. Documents:** PDF ingestion, server-side validation, text/topic extraction, CRUD operations.
+* **C. Quizzes:** Dynamic generation, difficulty/type constraints, topic mapping, explanations.
+* **D. Quiz Taking:** Interactive completion, instant scoring, answer evaluation, review views.
+* **E. Performance Analysis:** Granular breakdowns (overall score, correct/incorrect metrics, strong/weak topic tagging).
+* **F. History & Saving:** Persistent quiz templates, multi-attempt tracking, performance comparisons over time.
+* **G. Summaries:** Section-based structured overviews, concept highlights, summary CRUD operations.
+* **H. Course Q&A:** RAG pipeline providing answers bound strictly to source material with section references.
+* **I. Library:** Hierarchical folder structures, drag-and-drop/move support, multi-type filtering.
 
-identify the document's main topics
-identify important concepts
-understand relationships between concepts
-associate content with sections/pages
-Question generation
+### Non-Functional Requirements
+* **Performance:** Responsive UI feedback, non-blocking asynchronous document processing, and loading states for heavy AI actions.
+* **Security:** Data isolation, input validation, protected API endpoints, and server-side environment variables protecting API keys.
+* **Reliability:** Graceful error handling for invalid files or downstream AI failures without data corruption.
+* **Usability:** Intuitive accessibility-first design, keyboard navigation support, and full dark/light theme options.
+* **Maintainability:** Modular backend architecture, component-based frontend, and decoupled prompt management.
 
-The AI should generate:
+---
 
-relevant questions
-questions based strictly on the course
-different difficulties
-different question types
-plausible distractors for MCQs
-explanations
+## 🚦 Getting Started
 
-And ideally avoid:
+### Prerequisites
+* Node.js & npm / Python 3.x installed locally
+* Git configured on your machine
 
-duplicate questions
-ambiguous questions
-questions about information absent from the course
-questions with multiple valid answers when only one is expected
-Summary generation
+### Installation & Setup
 
-The AI should produce:
-
-concise summaries
-structured sections
-key points
-important definitions/concepts
-Question answering
-
-The AI should:
-
-User question
-      ↓
-Find relevant course content
-      ↓
-Generate answer
-      ↓
-Provide source/reference
-
-This prevents the feature from simply behaving like a generic chatbot.
-
-3. Future AI/ML requirements
-
-I would not put these in the initial MVP requirements.
-
-Keep them as future requirements:
-
-Adaptive learning
-
-The system could eventually:
-
-track performance per topic
-identify recurring mistakes
-estimate topic mastery
-recommend what to review
-recommend which questions to practice next
-adapt question difficulty based on performance
-
-Eventually you could have:
-
-Topic                  Mastery
-
-OSI Model                92%
-TCP                      87%
-HTTP                     74%
-DNS                      51%
-Congestion Control       38%
-
-Then your own ML model could predict something like:
-
-P(correct answer | student, topic, question)
-
-That would be a very nice advanced phase, but don't make it a prerequisite for MemoZip's first working version.
-
-4. Non-functional requirements
-
-These are just as important for your software engineering side.
-
-Performance
-Normal UI interactions should feel responsive.
-Document processing should provide progress/status feedback.
-AI operations should display a loading state.
-Large documents should be processed without freezing the frontend.
-Security
-User data must be isolated between accounts.
-Uploaded files must be validated.
-API endpoints requiring authentication must be protected.
-API keys must never be exposed to the frontend.
-Sensitive configuration must be stored in environment variables.
-Reliability
-AI failures should produce understandable error messages.
-Invalid documents should be handled gracefully.
-Failed generation should not corrupt previously saved resources.
-The system should handle interrupted document processing.
-Usability
-The interface should be simple enough to understand without instructions.
-The application should support dark and light mode.
-The interface should be responsive.
-The application should be accessible through keyboard navigation.
-Colors should not be the only way of communicating information.
-Maintainability
-React components should be reusable.
-Backend code should be modular.
-API communication should be separated from UI components.
-Database migrations should be managed properly.
-AI prompts should be maintained separately from application logic.
-5. MVP requirements
-
-This is the part I'd actually put into Jira as your initial scope.
-
-Must have
-✓ User authentication
-✓ PDF upload
-✓ PDF text extraction
-✓ Document storage
-✓ AI topic extraction
-✓ AI quiz generation
-✓ Quiz taking
-✓ Quiz evaluation
-✓ Score calculation
-✓ Topic-level performance analysis
-✓ Quiz saving
-✓ Quiz retaking
-✓ Quiz attempt history
-✓ AI summary generation
-✓ Summary saving
-✓ Library
-✓ Folders
-✓ Dark/light mode
-Should have
-○ Course Q&A
-○ RAG
-○ Source/page references
-○ Semantic evaluation of short answers
-○ Search/filtering
-Future
-○ Topic mastery model
-○ Personalized question recommendations
-○ ML-based mastery prediction
-○ Spaced repetition
-○ Flashcards
-○ Advanced analytics
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/YOUR_USERNAME/MemoZip.git](https://github.com/YOUR_USERNAME/MemoZip.git)
+   cd MemoZip
