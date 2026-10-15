@@ -76,5 +76,5 @@ Whether you need to generate targeted practice quizzes from a 100-page PDF, extr
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/YOUR_USERNAME/MemoZip.git](https://github.com/YOUR_USERNAME/MemoZip.git)
+   git clone [https://github.com/ibtihel11/MemoZip.git](https://github.com/ibtihel11/MemoZip.git)
    cd MemoZip
