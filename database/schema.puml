@@ -1,0 +1,283 @@
+@startuml MemoZip
+!theme plain
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam roundcorner 6
+skinparam ArrowColor #64748B
+skinparam entity {
+  BackgroundColor #FFFFFF
+  BorderColor #475569
+}
+title MemoZip database (PostgreSQL)
+
+' Legend: * = NOT NULL, <<PK>> primary key, <<FK>> foreign key, <<UK>> unique
+
+package "Accounts" #F3E8FF {
+  entity users {
+    * id : uuid <<PK>>
+    --
+    * name : text
+    * email : citext <<UK>>
+    * password_hash : text
+    * default_difficulty : difficulty
+    * default_question_count : smallint
+    * theme : text
+    * created_at : timestamptz
+    * updated_at : timestamptz
+  }
+  entity refresh_tokens {
+    * id : uuid <<PK>>
+    --
+    * user_id : uuid <<FK>>
+    * token_hash : text <<UK>>
+    user_agent : text
+    * created_at : timestamptz
+    * expires_at : timestamptz
+    revoked_at : timestamptz
+  }
+  entity folders {
+    * id : uuid <<PK>>
+    --
+    * user_id : uuid <<FK>>
+    * name : text
+    * created_at : timestamptz
+    * updated_at : timestamptz
+  }
+}
+
+package "Course content" #ECFDF5 {
+  entity documents {
+    * id : uuid <<PK>>
+    --
+    * user_id : uuid <<FK>>
+    folder_id : uuid <<FK>>
+    * title : text
+    * file_name : text
+    * storage_key : text
+    * mime_type : text
+    * size_bytes : bigint
+    sha256 : char(64)
+    page_count : integer
+    * concept_count : integer
+    * status : document_status
+    * processing_step : smallint
+    error_message : text
+    * created_at : timestamptz
+    * updated_at : timestamptz
+    processed_at : timestamptz
+  }
+  entity topics {
+    * id : uuid <<PK>>
+    --
+    * document_id : uuid <<FK>>
+    * name : text
+    * position : smallint
+  }
+  entity document_chunks {
+    * id : uuid <<PK>>
+    --
+    * document_id : uuid <<FK>>
+    topic_id : uuid <<FK>>
+    * chunk_index : integer
+    * page_start : integer
+    * page_end : integer
+    section_title : text
+    * content : text
+    token_count : integer
+    embedding : vector(1536)
+    tsv : tsvector
+  }
+}
+
+package "Quizzes and results" #FFF7ED {
+  entity quizzes {
+    * id : uuid <<PK>>
+    --
+    * user_id : uuid <<FK>>
+    * document_id : uuid <<FK>>
+    folder_id : uuid <<FK>>
+    * title : text
+    * difficulty : difficulty
+    * requested_count : smallint
+    * question_types : question_type[]
+    * is_saved : boolean
+    * created_at : timestamptz
+    * updated_at : timestamptz
+  }
+  entity quiz_focus_topics {
+    * quiz_id : uuid <<PK>> <<FK>>
+    * topic_id : uuid <<PK>> <<FK>>
+  }
+  entity questions {
+    * id : uuid <<PK>>
+    --
+    * quiz_id : uuid <<FK>>
+    * topic_id : uuid <<FK>>
+    source_chunk_id : uuid <<FK>>
+    * position : smallint
+    * type : question_type
+    * difficulty : question_difficulty
+    * prompt : text
+    options : jsonb
+    * correct_answer : text
+    keywords : text[]
+    * explanation : text
+    * created_at : timestamptz
+  }
+  entity quiz_attempts {
+    * id : uuid <<PK>>
+    --
+    * quiz_id : uuid <<FK>>
+    * user_id : uuid <<FK>>
+    * started_at : timestamptz
+    completed_at : timestamptz
+    * total_count : smallint
+    correct_count : smallint
+    score : smallint
+    duration_seconds : integer
+    analysis_text : text
+  }
+  entity attempt_answers {
+    * id : uuid <<PK>>
+    --
+    * attempt_id : uuid <<FK>>
+    * question_id : uuid <<FK>>
+    * answer_text : text
+    is_correct : boolean
+    grading_score : real
+    grading_feedback : text
+    * answered_at : timestamptz
+  }
+  entity attempt_topic_scores {
+    * attempt_id : uuid <<PK>> <<FK>>
+    * topic_id : uuid <<PK>> <<FK>>
+    --
+    * score : smallint
+    * correct_count : smallint
+    * total_count : smallint
+  }
+}
+
+package "Summaries" #FDF2F8 {
+  entity summaries {
+    * id : uuid <<PK>>
+    --
+    * user_id : uuid <<FK>>
+    * document_id : uuid <<FK>>
+    folder_id : uuid <<FK>>
+    * title : text
+    * overview : text
+    * key_points : text[]
+    * is_saved : boolean
+    * version : integer
+    * created_at : timestamptz
+    * updated_at : timestamptz
+  }
+  entity summary_concepts {
+    * id : uuid <<PK>>
+    --
+    * summary_id : uuid <<FK>>
+    * position : smallint
+    * title : text
+    * body : text
+  }
+}
+
+package "AI Chat" #FFFBEB {
+  entity conversations {
+    * id : uuid <<PK>>
+    --
+    * user_id : uuid <<FK>>
+    document_id : uuid <<FK>>
+    * title : text
+    * created_at : timestamptz
+    * updated_at : timestamptz
+  }
+  entity messages {
+    * id : uuid <<PK>>
+    --
+    * seq : bigint
+    * conversation_id : uuid <<FK>>
+    * role : message_role
+    * content : text
+    model : text
+    prompt_tokens : integer
+    completion_tokens : integer
+    * created_at : timestamptz
+  }
+  entity message_sources {
+    * id : uuid <<PK>>
+    --
+    * message_id : uuid <<FK>>
+    * document_id : uuid <<FK>>
+    chunk_id : uuid <<FK>>
+    * page_start : integer
+    * page_end : integer
+    section : text
+    relevance : real
+  }
+}
+
+entity jobs #F1F5F9 {
+  * id : uuid <<PK>>
+  --
+  * user_id : uuid <<FK>>
+  * kind : job_kind
+  * status : job_status
+  document_id : uuid <<FK>>
+  quiz_id : uuid <<FK>>
+  summary_id : uuid <<FK>>
+  * params : jsonb
+  error_message : text
+  model : text
+  prompt_tokens : integer
+  completion_tokens : integer
+  * created_at : timestamptz
+  started_at : timestamptz
+  finished_at : timestamptz
+}
+
+' ---------------------------------------------------------------- relationships
+users ||--o{ refresh_tokens
+users ||--o{ folders
+users ||--o{ documents
+users ||--o{ quizzes
+users ||--o{ summaries
+users ||--o{ conversations
+users ||--o{ jobs
+
+folders |o--o{ documents : "SET NULL on delete"
+folders |o--o{ quizzes
+folders |o--o{ summaries
+
+documents ||--o{ topics : "CASCADE"
+documents ||--o{ document_chunks
+topics |o--o{ document_chunks
+documents ||--o{ quizzes
+documents ||--o{ summaries
+documents |o--o{ conversations : "null = all courses"
+documents ||--o{ message_sources
+documents |o--o{ jobs
+
+quizzes ||--|{ questions
+quizzes ||--o{ quiz_attempts
+quizzes ||--o{ quiz_focus_topics
+topics ||--o{ quiz_focus_topics
+topics ||--o{ questions
+document_chunks |o--o{ questions
+quiz_attempts ||--o{ attempt_answers
+questions ||--o{ attempt_answers
+quiz_attempts ||--o{ attempt_topic_scores
+topics ||--o{ attempt_topic_scores
+quizzes |o--o{ jobs
+summaries |o--o{ jobs
+
+summaries ||--o{ summary_concepts
+
+conversations ||--o{ messages
+messages ||--o{ message_sources
+document_chunks |o--o{ message_sources
+
+@enduml

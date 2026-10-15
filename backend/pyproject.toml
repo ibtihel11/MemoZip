@@ -1,0 +1,20 @@
+[project]
+name = "backend"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.20.0",
+    "email-validator>=2.3.0",
+    "fastapi[standard]>=0.142.2",
+    "google-genai>=2.29.0",
+    "psycopg2-binary>=2.9.13",
+    "psycopg[binary]>=3.3.6",
+    "pwdlib[argon2]>=0.3.1",
+    "pydantic-settings>=2.15.0",
+    "pyjwt>=2.15.1",
+    "pypdf>=6.20.0",
+    "pypdfium2>=5.14.0",
+    "pytesseract>=0.3.13",
+    "python-multipart>=0.0.32",
+    "sqlalchemy>=2.1.1",
+]

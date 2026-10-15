@@ -1,0 +1,159 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------
+   MemoZip theming.
+   Each theme defines the same semantic tokens (space-separated RGB so
+   Tailwind can add alpha). Components never use raw colors: they use
+   Tailwind classes that read these variables, so switching the
+   data-theme attribute on <html> restyles the whole app at once.
+
+   Semantic token       Tailwind class family
+   --background         bg-bg
+   --surface            bg-surface
+   --surface-raised     bg-surface2
+   --border(-strong)    border-border / border-border-strong
+   --text               text-fg
+   --muted / --subtle   text-muted / text-subtle
+   --primary            bg-accent, text-accent, ring-accent, fill/stroke-accent
+   --primary-solid      bg-accent-solid (button fill)
+   --on-primary         text-on-accent
+   --primary-text       text-accent-text (primary-colored text)
+   --mastery(-text)     bg-mint / text-mint-text
+   --warning(-text)     bg-warn / text-warn-text
+------------------------------------------------------------------- */
+
+/* Theme 1: Tokyo Night / Amethyst (default) */
+:root,
+[data-theme='tokyo-night'] {
+  --background: 15 12 32;        /* Deep Violet   #0F0C20 */
+  --surface: 24 20 48;
+  --surface-raised: 32 27 62;
+  --border: 47 40 84;
+  --border-strong: 70 60 118;
+  --text: 243 232 255;           /* Pure Lavender #F3E8FF */
+  --muted: 177 165 207;
+  --subtle: 144 133 182;
+  --primary: 168 85 247;         /* Neon Amethyst #A855F7 */
+  --primary-solid: 168 85 247;
+  --on-primary: 15 12 32;
+  --primary-text: 192 132 252;
+  --mastery: 52 211 153;         /* Cyber Mint    #34D399 */
+  --mastery-text: 52 211 153;
+  --warning: 251 146 60;         /* Solar Orange  #FB923C */
+  --warning-text: 251 146 60;
+
+  --shadow-card: none;
+  --shadow-pop: 0 16px 48px rgb(0 0 0 / 0.45);
+  --radius-scale: 1;
+ --font-display: 'Figtree', ui-sans-serif, system-ui, sans-serif; 
+  --display-tracking: -0.02em;
+  /* Soft amethyst glow behind the page header */
+  --backdrop: radial-gradient(60rem 26rem at 50% -8rem, rgb(168 85 247 / 0.16), transparent 70%);
+  --backdrop-size: auto;
+}
+
+/* Theme 2: Monokai / Terminal Code */
+[data-theme='monokai'] {
+  --background: 24 24 27;        /* Code Charcoal  #18181B */
+  --surface: 32 32 36;
+  --surface-raised: 42 42 47;
+  --border: 56 56 62;
+  --border-strong: 82 82 91;
+  --text: 250 250 250;           /* Soft Canvas    #FAFAFA */
+  --muted: 176 176 186;
+  --subtle: 148 148 158;
+  --primary: 234 179 8;          /* Monokai Yellow #EAB308 */
+  --primary-solid: 234 179 8;
+  --on-primary: 24 24 27;
+  --primary-text: 234 179 8;
+  --mastery: 34 197 94;          /* Terminal Green #22C55E */
+  --mastery-text: 34 197 94;
+  --warning: 239 68 68;          /* Syntax Red     #EF4444 */
+  --warning-text: 248 113 113;   /* lighter red so small text stays AA on charcoal */
+
+  --shadow-card: none;
+  --shadow-pop: 0 16px 48px rgb(0 0 0 / 0.55);
+  --radius-scale: 0.5;           /* sharper, IDE-like corners */
+  --font-display: 'Figtree', ui-sans-serif, system-ui, sans-serif; 
+  --display-tracking: -0.04em;
+  /* Faint editor dot grid */
+  --backdrop: radial-gradient(rgb(250 250 250 / 0.07) 1px, transparent 1px);
+  --backdrop-size: 22px 22px;
+}
+
+/* Theme 3: Nord / Deep Arctic */
+[data-theme='nord'] {
+  --background: 30 41 59;        /* Polar Night  #1E293B */
+  --surface: 36 48 69;
+  --surface-raised: 45 58 80;
+  --border: 57 72 96;
+  --border-strong: 84 100 126;
+  --text: 248 250 252;           /* Ice White    #F8FAFC */
+  --muted: 182 194 210;
+  --subtle: 158 173 193;
+  --primary: 56 189 248;         /* Frost Blue   #38BDF8 */
+  --primary-solid: 56 189 248;
+  --on-primary: 30 41 59;
+  --primary-text: 56 189 248;
+  --mastery: 20 184 166;         /* Nordic Teal  #14B8A6 */
+  --mastery-text: 45 212 191;    /* lighter teal for small text on slate */
+  --warning: 251 191 36;         /* Aurora Gold  #FBBF24 */
+  --warning-text: 251 191 36;
+
+  --shadow-card: none;
+  --shadow-pop: 0 16px 48px rgb(8 15 30 / 0.5);
+  --radius-scale: 0.85;
+  --font-display: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+  --display-tracking: -0.015em;
+  /* Faint northern-light wash: frost blue on the left, teal on the right */
+  --backdrop:
+    radial-gradient(44rem 22rem at 18% -6rem, rgb(56 189 248 / 0.13), transparent 70%),
+    radial-gradient(40rem 20rem at 85% -4rem, rgb(20 184 166 / 0.11), transparent 70%);
+  --backdrop-size: auto;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-bg font-sans text-fg antialiased;
+    background-image: var(--backdrop);
+    background-size: var(--backdrop-size);
+    background-repeat: no-repeat;
+  }
+  [data-theme='monokai'] body { background-repeat: repeat; }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: var(--display-tracking);
+  }
+  :focus-visible {
+    outline: 2px solid rgb(var(--primary));
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection { background: rgb(var(--primary) / 0.3); }
+  textarea, input, select { font: inherit; }
+}
+
+/* Smooth cross-fade while the theme changes (class is set for ~400ms by ThemeProvider). */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 320ms ease, color 320ms ease, border-color 320ms ease,
+    fill 320ms ease, stroke 320ms ease, box-shadow 320ms ease, outline-color 320ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

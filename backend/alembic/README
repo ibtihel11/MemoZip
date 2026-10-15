@@ -1,0 +1,5 @@
+SQLAlchemy and Alembic are two highly popular, open-source Python libraries that work together to manage how an application interacts with a relational database.
+
+SQLAlchemy is a comprehensive library that acts as a bridge between Python code and relational databases (like PostgreSQL, MySQL, or SQLite). Its core feature is the Object-Relational Mapper (ORM), which allows developers to write Python classes that map directly to database tables.
+
+Alembic is a database migration tool built specifically to solve SQLAlchemy's modification limitation. Once you have data in a production database, you cannot simply delete and rebuild tables every time you want to add a column, change a data type, or create a new constraint.
