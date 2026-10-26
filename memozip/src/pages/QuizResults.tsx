@@ -99,7 +99,7 @@ export default function QuizResults() {
           <h2 id="analysis-title" className="flex items-center gap-2 text-base font-semibold">
             <Sparkles size={17} className="text-accent-text" aria-hidden="true" /> AI analysis
           </h2>
-          <p className="mt-2 leading-relaxed">{buildAnalysis(a.topicScores)}</p>
+          <p className="mt-2 leading-relaxed">{a.analysis ?? buildAnalysis(a.topicScores)}</p>
         </Card>
       </section>
 
@@ -142,10 +142,10 @@ export default function QuizResults() {
                       </div>
                       <div className="rounded-lg border border-mint/40 bg-mint/10 px-4 py-3">
                         <dt className="text-sm font-medium text-mint-text">Correct answer</dt>
-                        <dd className="mt-0.5">{question.correctAnswer}</dd>
+                        <dd className="mt-0.5">{r.correctAnswer || question.correctAnswer}</dd>
                       </div>
                     </dl>
-                    <p className="mt-4 leading-relaxed text-muted"><span className="font-medium text-fg">Why: </span>{question.explanation}</p>
+                    <p className="mt-4 leading-relaxed text-muted"><span className="font-medium text-fg">Why: </span>{r.explanation || question.explanation}</p>
                   </Card>
                 </li>
               );

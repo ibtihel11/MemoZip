@@ -33,13 +33,9 @@ export function Navbar() {
 
   return (
     <header className="pointer-events-none sticky top-0 z-30 flex justify-center px-3 pt-4 sm:px-4 sm:pt-5">
-      <div className="pointer-events-auto flex h-16 w-full max-w-md items-center justify-between gap-2 rounded-full border border-border bg-surface/80 py-2 pl-5 pr-2.5 shadow-[0_8px_28px_rgb(0_0_0/0.28)] backdrop-blur-xl lg:w-auto lg:max-w-none lg:justify-center lg:gap-2 lg:pl-7">
-        <Link 
-          to="/" 
-          aria-label="MemoZip home" 
-          className="shrink-0 rounded-full p-2 transition-transform hover:scale-105 active:scale-95 lg:pr-4 lg:pl-1 lg:pt-2"
-        >
-          <Logo />
+      <div className="pointer-events-auto flex h-16 w-full max-w-md items-center justify-between gap-2 rounded-full border border-border bg-surface/80 py-2 pl-5 pr-2.5 shadow-[0_8px_28px_rgb(0_0_0/0.28)] backdrop-blur-xl lg:w-auto lg:max-w-none lg:justify-center lg:gap-1 lg:pl-4">
+        <Link to="/" aria-label="MemoZip home" className="shrink-0 rounded-full lg:pr-3">
+          <Logo size={34} hideWordmarkOnMobile />
         </Link>
 
         <nav aria-label="Main" className="hidden items-center gap-1 border-x border-border px-3 lg:flex">

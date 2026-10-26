@@ -53,7 +53,8 @@ export default function Upload() {
     try {
       setDoc(await api.documents.upload(file, setStep));
       setPhase('ready');
-    } catch {
+    } catch (e) {
+      setError(e instanceof Error ? e.message : null);
       setPhase('failed');
     }
   };
@@ -157,7 +158,7 @@ export default function Upload() {
 
       {phase === 'failed' && (
         <Card>
-          <ErrorState message="We couldn’t finish analyzing this document. Your other resources are untouched. Try uploading it again." onRetry={() => setPhase('selected')} />
+          <ErrorState message={error ?? 'We couldn’t finish analyzing this document. Your other resources are untouched. Try uploading it again.'} onRetry={() => { setError(null); setPhase('selected'); }} />
         </Card>
       )}
     </div>

@@ -1,256 +1,98 @@
-import type { Quiz, Question, QuizAttempt, QuizConfig } from '@/types';
+import type { Quiz, QuizAttempt, QuizConfig } from '@/types';
+import { notify } from '../invalidate';
 import { http } from './http';
+import { listOf, mapAttempt, mapQuiz } from './mappers';
 
-interface ApiQuestion {
-  id: string;
-  topic_id: string;
-  type: Question['type'];
-  difficulty: Question['difficulty'];
-  prompt: string;
-  options: Record<string, string> | null;
+// Quiz routes live under /documents/quizzes on this backend.
+const base = '/documents/quizzes';
+
+/** One open attempt per quiz while the student is answering (promise, so React StrictMode's double effect starts only one). */
+const openAttempts = new Map<string, Promise<string>>();
+
+function startAttempt(quizId: string): Promise<string> {
+  let pending = openAttempts.get(quizId);
+  if (!pending) {
+    pending = http<any>(`${base}/${quizId}/attempts/start`, { method: 'POST' }) // eslint-disable-line @typescript-eslint/no-explicit-any
+      .then((raw) => String(raw.attemptId ?? raw.id));
+    openAttempts.set(quizId, pending);
+    pending.catch(() => openAttempts.delete(quizId));
+  }
+  return pending;
 }
 
-interface ApiQuiz {
-  id: string;
-  document_id: string;
-  title: string;
-  difficulty: Quiz['difficulty'];
-  requested_count: number;
-  question_types: string[];
-  is_saved: boolean;
-  created_at: string;
-  questions: ApiQuestion[];
+async function getQuiz(id: string): Promise<Quiz> {
+  return mapQuiz(await http(`${base}/${id}`));
 }
 
-interface ApiSavedQuiz {
-  id: string;
-  document_id: string;
-  title: string;
-  difficulty: Quiz['difficulty'];
-  requested_count: number;
-  question_types: string[];
-  is_saved: boolean;
-  created_at: string;
-}
-
-interface ApiAttemptStart {
-  attempt_id: string;
-  quiz_id: string;
-  started_at: string;
-  total_count: number;
-}
-
-interface ApiAnswerResult {
-  question_id: string;
-  user_answer: string;
-  correct_answer: string;
-  is_correct: boolean;
-  explanation: string;
-}
-
-interface ApiAttemptSubmissionResult {
-  attempt_id: string;
-  quiz_id: string;
-  total_count: number;
-  correct_count: number;
-  score: number;
-  results: ApiAnswerResult[];
-}
-
-interface ApiAttemptDetail extends ApiAttemptSubmissionResult {
-  completed_at: string;
-  duration_seconds: number | null;
-  analysis_text: string | null;
-  results: (ApiAnswerResult & { prompt: string })[];
-  topic_scores: {
-    topic_id: string;
-    topic_name: string;
-    score: number;
-    correct_count: number;
-    total_count: number;
-  }[];
-}
-
-interface ApiAttemptHistory {
-  attempt_id: string;
-  score: number;
-  total_count: number;
-  correct_count: number;
-  completed_at: string;
-  duration_seconds: number | null;
-  analysis_text: string | null;
-}
-
-function mapQuiz(data: ApiQuiz): Quiz {
-  return {
-    id: data.id,
-    title: data.title,
-    documentId: data.document_id,
-    createdAt: data.created_at,
-    folderId: null,
-    difficulty: data.difficulty,
-    saved: data.is_saved,
-    questions: data.questions.map((question) => ({
-      id: question.id,
-      type: question.type,
-      prompt: question.prompt,
-      options: question.options
-        ? Object.values(question.options)
-        : undefined,
-      correctAnswer: '',
-      explanation: '',
-      topicId: question.topic_id,
-      difficulty: question.difficulty,
-    })),
-  };
-}
-
-function mapSavedQuiz(data: ApiSavedQuiz): Quiz {
-  return {
-    id: data.id,
-    title: data.title,
-    documentId: data.document_id,
-    createdAt: data.created_at,
-    folderId: null,
-    difficulty: data.difficulty,
-    saved: data.is_saved,
-    questions: [],
-  };
-}
-
-function mapAttemptResult(item: ApiAttemptSubmissionResult, completedAt: string): QuizAttempt {
-  return {
-    id: item.attempt_id,
-    quizId: item.quiz_id,
-    completedAt,
-    score: item.score,
-    correctCount: item.correct_count,
-    total: item.total_count,
-    answers: item.results.map((result) => ({
-      questionId: result.question_id,
-      answer: result.user_answer,
-      correct: result.is_correct,
-    })),
-    topicScores: [],
-  };
-}
-
-function mapAttemptDetail(item: ApiAttemptDetail): QuizAttempt {
-  return {
-    id: item.attempt_id,
-    quizId: item.quiz_id,
-    completedAt: item.completed_at,
-    score: item.score,
-    correctCount: item.correct_count,
-    total: item.total_count,
-    answers: item.results.map((result) => ({
-      questionId: result.question_id,
-      answer: result.user_answer,
-      correct: result.is_correct,
-    })),
-    topicScores: item.topic_scores.map((topic) => ({
-      topicId: topic.topic_id,
-      topicName: topic.topic_name,
-      score: topic.score,
-    })),
-  };
+async function getAttempt(attemptId: string): Promise<QuizAttempt> {
+  return mapAttempt(await http(`${base}/attempts/${attemptId}`));
 }
 
 export const quizzes = {
+  /** Saved quizzes only (the ones in the Library). */
   async list(): Promise<Quiz[]> {
-    const data = await http<ApiSavedQuiz[]>('/documents/quizzes/saved');
-    return data.map(mapSavedQuiz);
+    return listOf(await http(`${base}/saved`), 'quizzes').map(mapQuiz);
   },
 
-  async get(id: string): Promise<Quiz> {
-    const data = await http<ApiQuiz>(`/documents/quizzes/${id}`);
-    return mapQuiz(data);
-  },
+  get: getQuiz,
 
   async generate(config: QuizConfig): Promise<Quiz> {
-    const data = await http<ApiQuiz>(
-      `/documents/${config.documentId}/quizzes`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          question_count: config.count,
-          difficulty: config.difficulty,
-          question_types: config.types,
-        }),
+    const raw = await http(`/documents/${config.documentId}/quizzes`, {
+      method: 'POST',
+      json: {
+        questionCount: config.count,
+        difficulty: config.difficulty,
+        questionTypes: config.types,
+        // "Review weak topics". Remove this line if the backend does not support focus topics yet.
+        ...(config.topicIds?.length ? { topicIds: config.topicIds } : {}),
       },
-    );
-
-    return mapQuiz(data);
+    });
+    const quiz = mapQuiz(raw);
+    notify();
+    // Some backends answer with just the new quiz's id; load the full quiz in that case.
+    return quiz.questions.length > 0 ? quiz : getQuiz(quiz.id);
   },
 
-  async submit(
-    quizId: string,
-    answers: Record<string, string>,
-  ): Promise<QuizAttempt> {
-    const started = await http<ApiAttemptStart>(
-      `/documents/quizzes/${quizId}/attempts/start`,
-      { method: 'POST' },
-    );
+  startAttempt,
 
-    const result = await http<ApiAttemptSubmissionResult>(
-      `/documents/quizzes/${quizId}/attempts`,
-      {
-        method: 'POST',
-        body: JSON.stringify({
-          attempt_id: started.attempt_id,
-          answers: Object.entries(answers).map(([question_id, answer]) => ({
-            question_id,
-            answer,
-          })),
-        }),
+  /**
+   * Submits the answers (graded on the backend) and returns the full attempt.
+   * `questionIds` lets unanswered questions be sent as empty answers.
+   */
+  async submit(quizId: string, answers: Record<string, string>, questionIds: string[] = Object.keys(answers)): Promise<QuizAttempt> {
+    const attemptId = await startAttempt(quizId);
+    const raw = await http(`${base}/${quizId}/attempts`, {
+      method: 'POST',
+      json: {
+        attemptId,
+        answers: questionIds.map((questionId) => ({ questionId, answer: answers[questionId] ?? '' })),
       },
-    );
-
-    return mapAttemptResult(result, new Date().toISOString());
+    });
+    openAttempts.delete(quizId);
+    notify();
+    const attempt = mapAttempt(raw);
+    // The submit response may be a short summary; the attempt endpoint has the full review.
+    return attempt.answers.length > 0 ? attempt : getAttempt(attempt.id || attemptId);
   },
 
   async attempts(quizId: string): Promise<QuizAttempt[]> {
-    const data = await http<ApiAttemptHistory[]>(
-      `/documents/quizzes/${quizId}/attempts`,
-    );
-
-    return data.map((item) => ({
-      id: item.attempt_id,
-      quizId,
-      completedAt: item.completed_at,
-      score: item.score,
-      correctCount: item.correct_count,
-      total: item.total_count,
-      answers: [],
-      topicScores: [],
-    }));
+    return listOf(await http(`${base}/${quizId}/attempts`), 'attempts').map(mapAttempt);
   },
 
-  async attempt(attemptId: string): Promise<QuizAttempt> {
-    const item = await http<ApiAttemptDetail>(
-      `/documents/quizzes/attempts/${attemptId}`,
-    );
-
-    return mapAttemptDetail(item);
-  },
+  attempt: getAttempt,
 
   async save(id: string): Promise<void> {
-    await http(`/documents/quizzes/${id}/save`, {
-      method: 'PATCH',
-      body: JSON.stringify({ is_saved: true }),
-    });
+    await http(`${base}/${id}/save`, { method: 'PATCH', json: { isSaved: true } });
+    notify();
   },
 
   async rename(id: string, title: string): Promise<void> {
-    await http(`/documents/quizzes/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ title }),
-    });
+    await http(`${base}/${id}`, { method: 'PATCH', json: { title } });
+    notify();
   },
 
   async remove(id: string): Promise<void> {
-    await http(`/documents/quizzes/${id}`, {
-      method: 'DELETE',
-    });
+    await http(`${base}/${id}`, { method: 'DELETE' });
+    notify();
   },
 };

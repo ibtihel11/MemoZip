@@ -22,6 +22,8 @@ export default function Ask() {
   const [thinking, setThinking] = useState(false);
   const [failed, setFailed] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  // The backend keeps every question and answer in a conversation scoped to this course.
+  const conversationId = useRef<string | null>(null);
   usePageTitle('Ask about your course');
 
   useEffect(() => {
@@ -39,8 +41,9 @@ export default function Ask() {
     setFailed(false);
     setThinking(true);
     try {
-      const res = await api.chat.ask(id, question);
-      setMessages((m) => [...m, { id: uid('m'), role: 'assistant', text: res.answer, source: res.source }]);
+      const convId = (conversationId.current ??= (await api.chat.conversations.create(id)).id);
+      const reply = await api.chat.sendMessage(convId, question);
+      setMessages((m) => [...m, reply]);
     } catch {
       setFailed(true);
     } finally {

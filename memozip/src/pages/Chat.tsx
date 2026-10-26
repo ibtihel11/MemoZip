@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BookOpen, History, MessageSquarePlus, Send, Sparkles, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
@@ -13,8 +13,6 @@ import type { ChatMessage } from '@/types';
 import { cn } from '@/utils/cn';
 import { formatRelative } from '@/utils/format';
 import { uid } from '@/utils/id';
-
-const titleFrom = (text: string) => (text.length > 48 ? `${text.slice(0, 45).trimEnd()}…` : text);
 
 export default function Chat() {
   usePageTitle('AI Chat');
@@ -72,38 +70,27 @@ export default function Chat() {
     };
   }, [id]);
 
-  const persist = useCallback((convId: string, nextScope: string, nextMessages: ChatMessage[]) => {
-    const first = nextMessages.find((m) => m.role === 'user');
-    return api.chat.conversations.save({
-      id: convId,
-      title: first ? titleFrom(first.text) : 'New chat',
-      scope: nextScope,
-      messages: nextMessages,
-      updatedAt: new Date().toISOString(),
-    });
-  }, []);
-
   const send = async (text: string) => {
     const question = text.trim();
     if (!question || thinking) return;
-    const isNew = current.current.id === null;
-    const convId = current.current.id ?? uid('chat');
-    current.current.id = convId;
 
-    const withQuestion: ChatMessage[] = [...messages, { id: uid('m'), role: 'user', text: question }];
-    setMessages(withQuestion);
+    setMessages((m) => [...m, { id: uid('m'), role: 'user', text: question }]);
     setInput('');
     setFailed(false);
     setLoadError(false);
     setThinking(true);
-    await persist(convId, scope, withQuestion);
-    if (isNew) navigate(`/chat/${convId}`, { replace: true });
 
+    let convId = current.current.id;
     try {
-      const res = await api.chat.send(scope, question);
-      const done: ChatMessage[] = [...withQuestion, { id: uid('m'), role: 'assistant', text: res.answer, source: res.source }];
-      await persist(convId, scope, done);
-      if (current.current.id === convId) setMessages(done);
+      if (!convId) {
+        // First message of a new chat: create the conversation on the backend, then move to its URL.
+        const conversation = await api.chat.conversations.create(scope);
+        convId = conversation.id;
+        current.current.id = convId;
+        navigate(`/chat/${convId}`, { replace: true });
+      }
+      const reply = await api.chat.sendMessage(convId, question);
+      if (current.current.id === convId) setMessages((m) => [...m, reply]);
     } catch {
       if (current.current.id === convId) setFailed(true);
     } finally {
@@ -113,7 +100,7 @@ export default function Chat() {
 
   const changeScope = (next: string) => {
     setScope(next);
-    if (current.current.id && messages.length > 0) void persist(current.current.id, next, messages);
+    if (current.current.id) void api.chat.conversations.update(current.current.id, { scope: next }).catch(() => undefined);
   };
 
   const onSubmit = (e: FormEvent) => {
@@ -127,6 +114,7 @@ export default function Chat() {
     }
   };
 
+  const titleOf = (documentId?: string) => docs.data?.find((d) => d.id === documentId)?.title;
   const scopeName = scope === ALL_COURSES ? 'all your courses' : docs.data?.find((d) => d.id === scope)?.title ?? 'your course';
   const recent = (history.data ?? []).slice(0, 8);
   const empty = messages.length === 0;
@@ -229,7 +217,7 @@ export default function Chat() {
                   <div className="min-w-0">
                     <p className="sr-only">Answer</p>
                     <p className="text-[1.0625rem] leading-8">{m.text}</p>
-                    {m.source && <SourceChip source={m.source} />}
+                    {m.source && <SourceChip source={m.source} titleOf={titleOf} />}
                   </div>
                 </div>
               )}
@@ -291,8 +279,8 @@ export default function Chat() {
   );
 }
 
-function SourceChip({ source }: { source: NonNullable<ChatMessage['source']> }) {
-  const where = [source.documentTitle, source.pages !== '—' ? `Pages ${source.pages}` : null, source.section].filter(Boolean).join(' · ');
+function SourceChip({ source, titleOf }: { source: NonNullable<ChatMessage['source']>; titleOf: (documentId?: string) => string | undefined }) {
+  const where = [source.documentTitle ?? titleOf(source.documentId), source.pages !== '—' ? `Pages ${source.pages}` : null, source.section].filter(Boolean).join(' · ');
   const body = (
     <>
       <BookOpen size={15} className="shrink-0 text-accent-text" aria-hidden="true" />

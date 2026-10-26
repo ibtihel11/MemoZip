@@ -44,6 +44,7 @@ export default function Settings() {
   const [emailError, setEmailError] = useState('');
   const [savingAccount, setSavingAccount] = useState(false);
   const [accountSaved, setAccountSaved] = useState(false);
+  const [accountError, setAccountError] = useState('');
   const [prefSaved, setPrefSaved] = useState(false);
 
   const accountDirty = name.trim() !== user.name || email.trim() !== user.email;
@@ -56,16 +57,26 @@ export default function Settings() {
     }
     setEmailError('');
     setSavingAccount(true);
-    await updateUser({ name: name.trim() || user.name, email: email.trim() });
-    setSavingAccount(false);
-    setAccountSaved(true);
-    window.setTimeout(() => setAccountSaved(false), 3000);
+    setAccountError('');
+    try {
+      await updateUser({ name: name.trim() || user.name, email: email.trim() });
+      setAccountSaved(true);
+      window.setTimeout(() => setAccountSaved(false), 3000);
+    } catch (err) {
+      setAccountError(err instanceof Error ? err.message : 'We couldn’t save your changes. Please try again.');
+    } finally {
+      setSavingAccount(false);
+    }
   };
 
   const savePref = async (patch: Partial<{ defaultDifficulty: Difficulty; defaultQuestionCount: number }>) => {
-    await updateUser(patch);
-    setPrefSaved(true);
-    window.setTimeout(() => setPrefSaved(false), 2500);
+    try {
+      await updateUser(patch);
+      setPrefSaved(true);
+      window.setTimeout(() => setPrefSaved(false), 2500);
+    } catch {
+      /* the previous value stays selected */
+    }
   };
 
   return (
@@ -122,6 +133,7 @@ export default function Settings() {
             <div className="flex items-center gap-3">
               <Button type="submit" loading={savingAccount} disabled={!accountDirty}>Save changes</Button>
               <span role="status" className="text-sm text-mint-text">{accountSaved ? 'Saved' : ''}</span>
+              <span role="alert" className="text-sm text-warn-text">{accountError}</span>
             </div>
           </form>
         </Section>

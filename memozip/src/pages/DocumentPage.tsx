@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Brain, FileText, MessageCircle, MoreHorizontal, StickyNote } from 'lucide-react';
 import { ErrorState, LoadingState } from '@/components/States';
@@ -6,7 +7,7 @@ import { QuizCard } from '@/components/QuizCard';
 import { ResourceCard } from '@/components/ResourceCard';
 import { useResourceActions } from '@/components/ResourceActions';
 import { Badge } from '@/components/ui/Badge';
-import { ButtonLink } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { usePageTitle } from '@/hooks/usePageTitle';
@@ -37,7 +38,7 @@ export default function DocumentPage() {
       <PageHeader
         back={{ to: '/library', label: 'Library' }}
         title={d.title}
-        subtitle={`${plural(d.pages, 'page')} · ${plural(d.conceptCount, 'concept')} identified · ${formatFileSize(d.sizeBytes)}`}
+        subtitle={[plural(d.pages, 'page'), `${plural(d.conceptCount, 'concept')} identified`, d.sizeBytes > 0 ? formatFileSize(d.sizeBytes) : null].filter(Boolean).join(' · ')}
         actions={
           resource.data && (
             <Dropdown label="Document actions" items={getMenu(resource.data)} triggerClassName="grid h-10 w-10 place-items-center rounded-lg border border-border bg-surface text-muted transition hover:bg-surface2 hover:text-fg">
@@ -46,6 +47,9 @@ export default function DocumentPage() {
           )
         }
       />
+
+      {d.status === 'processing' && <ProcessingBanner onTick={doc.refetch} />}
+      {d.status === 'failed' && <FailedBanner documentId={d.id} message={d.errorMessage} />}
 
       <Card className="p-6">
         <h2 className="text-lg font-semibold">What would you like to do?</h2>
@@ -95,4 +99,47 @@ function DocQuizCard({ quizId }: { quizId: string }) {
   const attempts = useQuery(() => api.quizzes.attempts(quizId), [quizId]);
   if (!quiz.data) return null;
   return <QuizCard quiz={quiz.data} latest={attempts.data?.[0]} />;
+}
+
+/** Shown while the backend is still analyzing the file; refreshes the page every few seconds. */
+function ProcessingBanner({ onTick }: { onTick: () => void }) {
+  useEffect(() => {
+    const timer = window.setInterval(onTick, 3000);
+    return () => window.clearInterval(timer);
+  }, [onTick]);
+  return (
+    <Card role="status" className="mb-6 p-5">
+      <p className="font-medium">We’re still analyzing this course.</p>
+      <p className="mt-1 text-muted">Quizzes and summaries will be available as soon as it’s ready.</p>
+    </Card>
+  );
+}
+
+function FailedBanner({ documentId, message }: { documentId: string; message?: string | null }) {
+  const [retrying, setRetrying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <Card role="alert" className="mb-6 border-warn/40 bg-warn/10 p-5">
+      <p className="font-medium text-warn-text">We couldn’t analyze this course.</p>
+      <p className="mt-1 text-muted">{error ?? message ?? 'Something went wrong while reading the file.'}</p>
+      <Button
+        className="mt-4"
+        variant="secondary"
+        loading={retrying}
+        onClick={async () => {
+          setRetrying(true);
+          setError(null);
+          try {
+            await api.documents.retry(documentId);
+          } catch (e) {
+            setError(e instanceof Error ? e.message : null);
+          } finally {
+            setRetrying(false);
+          }
+        }}
+      >
+        Try again
+      </Button>
+    </Card>
+  );
 }

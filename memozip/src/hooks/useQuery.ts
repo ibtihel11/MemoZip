@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type DependencyList } from 'react';
-import { subscribe } from '@/data/db';
+import { subscribe } from '@/services/invalidate';
 
 /**
- * Minimal data-fetching hook. Refetches when `deps` change and whenever the
- * mock store changes. With the real backend, replace the store subscription
- * with explicit refetch() calls after mutations (or adopt TanStack Query).
+ * Minimal data-fetching hook. Refetches when `deps` change and whenever a service reports a
+ * successful mutation (services/invalidate). Consider TanStack Query if you need caching.
  */
 export function useQuery<T>(fetcher: () => Promise<T>, deps: DependencyList = []) {
   const [data, setData] = useState<T | undefined>(undefined);

@@ -1,98 +1,92 @@
-import type { User } from '@/types';
-import { API_BASE_URL, ApiError, http } from './http';
-import { tokenStorage, type TokenResponse } from './tokenStorage';
+import type { Difficulty, User } from '@/types';
+import { notify } from '../invalidate';
+import { ApiError, captureTokens, clearTokens, getRefreshToken, http } from './http';
+import { mapUser } from './mappers';
 
-interface UserResponse {
-  id: string;
-  name: string;
-  email: string;
+/**
+ * Quiz defaults are kept in the browser: they only pre-fill the quiz setup screen. If the backend
+ * adds PATCH /auth/me they are sent there too (see updateUser).
+ */
+const PREFS_KEY = 'memozip-prefs';
+interface Prefs {
+  defaultDifficulty?: Difficulty;
+  defaultQuestionCount?: number;
 }
 
-async function loginWithTokens(
-  email: string,
-  password: string,
-): Promise<User> {
-  const body = new URLSearchParams({
-    username: email,
-    password,
-  });
-
-  const response = await fetch(`${API_BASE_URL}/auth/login`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body,
-  });
-
-  if (!response.ok) {
-    const detail = await response.json().catch(() => null);
-    throw new ApiError(
-      detail?.detail ?? 'Login failed. Please try again.',
-      response.status,
-    );
+function readPrefs(): Prefs {
+  try {
+    return JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') as Prefs;
+  } catch {
+    return {};
   }
+}
 
-  const tokens = (await response.json()) as TokenResponse;
-  tokenStorage.saveTokens(tokens);
+function savePrefs(prefs: Prefs): void {
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify({ ...readPrefs(), ...prefs }));
+  } catch {
+    /* storage unavailable */
+  }
+}
 
-  return http<UserResponse>('/auth/me') as Promise<User>;
+async function me(): Promise<User> {
+  return mapUser(await http('/auth/me'), readPrefs());
+}
+
+async function login(email: string, password: string): Promise<User> {
+  captureTokens(await http('/auth/login', { method: 'POST', json: { email, password } }));
+  return me();
 }
 
 export const auth = {
+  /** Restores the session on page load. Resolves to null when signed out. */
   async getCurrentUser(): Promise<User | null> {
-    if (!tokenStorage.getAccessToken()) {
-      return null;
-    }
-
     try {
-      return await http<User>('/auth/me');
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        tokenStorage.clearTokens();
-        return null;
-      }
-
-      throw error;
+      return await me();
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) return null;
+      throw e;
     }
   },
 
-  async login(email: string, password: string): Promise<User> {
-    return loginWithTokens(email, password);
-  },
+  login,
 
-  async register(
-    name: string,
-    email: string,
-    password: string,
-  ): Promise<User> {
-    await http<UserResponse>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ name, email, password }),
-    });
-
-    return loginWithTokens(email, password);
+  async register(name: string, email: string, password: string): Promise<User> {
+    captureTokens(await http('/auth/register', { method: 'POST', json: { name, email, password } }));
+    try {
+      return await me();
+    } catch (e) {
+      // The backend created the account but did not start a session.
+      if (e instanceof ApiError && e.status === 401) return login(email, password);
+      throw e;
+    }
   },
 
   async logout(): Promise<void> {
-    const refreshToken = tokenStorage.getRefreshToken();
-
+    const refreshToken = getRefreshToken();
     try {
-      if (refreshToken) {
-        await http<void>('/auth/logout', {
-          method: 'POST',
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        });
-      }
+      await http('/auth/logout', { method: 'POST', json: refreshToken ? { refreshToken } : undefined });
+    } catch {
+      /* signing out locally is enough */
     } finally {
-      tokenStorage.clearTokens();
+      clearTokens();
     }
   },
 
-  async updateUser(_patch: Partial<Omit<User, 'id'>>): Promise<User> {
-    throw new ApiError(
-      'Profile updates are not supported by the backend yet.',
-      501,
-    );
+  async updateUser(patch: Partial<Omit<User, 'id'>>): Promise<User> {
+    const { defaultDifficulty, defaultQuestionCount, ...profile } = patch;
+    try {
+      await http('/auth/me', { method: 'PATCH', json: patch });
+    } catch (e) {
+      if (!(e instanceof ApiError) || (e.status !== 404 && e.status !== 405)) throw e;
+      // The backend has no PATCH /auth/me yet: preferences still work locally, profile edits cannot.
+      if (Object.keys(profile).length > 0) throw new ApiError("Changing your name or email isn't available yet.", 501);
+    }
+    savePrefs({
+      ...(defaultDifficulty ? { defaultDifficulty } : {}),
+      ...(defaultQuestionCount ? { defaultQuestionCount } : {}),
+    });
+    notify();
+    return me();
   },
 };

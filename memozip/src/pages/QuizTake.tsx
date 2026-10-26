@@ -28,6 +28,11 @@ export default function QuizTake() {
   const [submitting, setSubmitting] = useState(false);
   usePageTitle('Quiz');
 
+  // Opens an attempt on the backend as soon as the quiz is shown, so the time taken is tracked.
+  useEffect(() => {
+    if (id) void api.quizzes.startAttempt(id).catch(() => undefined);
+  }, [id]);
+
   const total = quiz.data?.questions.length ?? 0;
   const go = useCallback((n: number) => setIndex(Math.max(0, Math.min(total - 1, n))), [total]);
 
@@ -55,7 +60,7 @@ export default function QuizTake() {
   const submit = async () => {
     setSubmitting(true);
     try {
-      const attempt = await api.quizzes.submit(id, answers);
+      const attempt = await api.quizzes.submit(id, answers, quiz.data!.questions.map((x) => x.id));
       navigate(`/quizzes/${id}/results/${attempt.id}`, { replace: true });
     } catch {
       setSubmitting(false);

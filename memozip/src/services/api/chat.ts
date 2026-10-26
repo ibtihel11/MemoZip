@@ -1,63 +1,64 @@
-import { db, notify } from '@/data/db';
-import { suggestedQuestions } from '@/data/mockData';
-import type { Conversation, SourceRef } from '@/types';
-import { delay, NotFoundError } from './http';
-import { answerAcrossCourses, answerQuestion } from './mockGenerators';
+import type { ChatMessage, Conversation } from '@/types';
+import { notify } from '../invalidate';
+import { http } from './http';
+import { listOf, mapConversation, pickAssistantReply } from './mappers';
 
+/** Chat scope meaning "search every course". Any other scope is a document id. */
 export const ALL_COURSES = 'all';
 
-const byRecent = (a: Conversation, b: Conversation) => +new Date(b.updatedAt) - +new Date(a.updatedAt);
-
 export const chat = {
-  /** Course Q&A (RAG). The backend should retrieve relevant passages, answer from them and return the source. */
-  async ask(documentId: string, question: string): Promise<{ answer: string; source: SourceRef }> {
-    await delay(1500);
-    const doc = db.documents.find((d) => d.id === documentId);
-    if (!doc) throw new NotFoundError('document');
-    return answerQuestion(doc, question);
-  },
-
-  /** AI Chat: `scope` is ALL_COURSES or a document id. `source` is omitted when nothing relevant was found. */
-  async send(scope: string, question: string): Promise<{ answer: string; source?: SourceRef }> {
-    await delay(1500);
-    if (scope === ALL_COURSES) return answerAcrossCourses(db.documents, question);
-    return chat.ask(scope, question);
-  },
-
+  /** Starter questions for the empty chat. Never blocks the page if it fails. */
   async suggestions(scope: string): Promise<string[]> {
-    await delay(100);
-    if (scope === ALL_COURSES) {
-      return db.documents.map((d) => suggestedQuestions[d.id]?.[0]).filter((s): s is string => !!s).slice(0, 4);
+    try {
+      const raw = await http<unknown>('/chat/suggestions', {
+        // Both spellings are sent so it works whichever the backend declares (see /docs).
+        query: { scope, document_id: scope === ALL_COURSES ? undefined : scope },
+      });
+      return listOf(raw, 'suggestions').filter((s): s is string => typeof s === 'string');
+    } catch {
+      return [];
     }
-    return suggestedQuestions[scope] ?? ['What are the main ideas of this course?', 'Explain the first topic in simple terms'];
   },
 
   conversations: {
     async list(): Promise<Conversation[]> {
-      await delay(80);
-      return [...db.conversations].sort(byRecent);
+      return listOf(await http('/conversations'), 'conversations').map(mapConversation);
     },
 
     async get(id: string): Promise<Conversation> {
-      await delay(80);
-      const c = db.conversations.find((x) => x.id === id);
-      if (!c) throw new NotFoundError('conversation');
-      return c;
+      return mapConversation(await http(`/conversations/${id}`));
     },
 
-    /** Creates or updates a conversation. */
-    async save(conversation: Conversation): Promise<void> {
-      const exists = db.conversations.some((c) => c.id === conversation.id);
-      db.conversations = exists
-        ? db.conversations.map((c) => (c.id === conversation.id ? conversation : c))
-        : [conversation, ...db.conversations];
+    /** Starts a chat. `scope` is ALL_COURSES or a document id. */
+    async create(scope: string): Promise<Conversation> {
+      const conversation = mapConversation(
+        await http('/conversations', { method: 'POST', json: { documentId: scope === ALL_COURSES ? null : scope } }),
+      );
+      notify();
+      return conversation;
+    },
+
+    async update(id: string, patch: { scope?: string; title?: string }): Promise<void> {
+      await http(`/conversations/${id}`, {
+        method: 'PATCH',
+        json: {
+          ...(patch.title !== undefined ? { title: patch.title } : {}),
+          ...(patch.scope !== undefined ? { documentId: patch.scope === ALL_COURSES ? null : patch.scope } : {}),
+        },
+      });
       notify();
     },
 
     async remove(id: string): Promise<void> {
-      await delay(80);
-      db.conversations = db.conversations.filter((c) => c.id !== id);
+      await http(`/conversations/${id}`, { method: 'DELETE' });
       notify();
     },
+  },
+
+  /** Asks a question in a conversation. Returns the assistant's answer with its source, if any. */
+  async sendMessage(conversationId: string, text: string): Promise<ChatMessage> {
+    const reply = pickAssistantReply(await http(`/conversations/${conversationId}/messages`, { method: 'POST', json: { content: text } }));
+    notify();
+    return reply;
   },
 };

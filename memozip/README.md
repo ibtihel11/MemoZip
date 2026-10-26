@@ -14,7 +14,7 @@ npm run dev        # http://localhost:5173
 npm run build      # type-check + production build
 ```
 
-The demo user is signed in automatically (log out from the account menu to see the auth pages; any email/password works).
+Start the FastAPI backend first (http://127.0.0.1:8000). The dev server forwards `/api` to it (`vite.config.ts`), so there is nothing else to configure. Create an account on the register page, or sign in.
 
 ## Structure
 
@@ -24,8 +24,7 @@ src/
   layouts/        AppLayout (centered navbar on large screens, bottom tab bar below 1024px), AuthLayout, ProtectedRoute
   pages/          One file per screen (Home, Upload, QuizConfig, QuizTake, QuizResults, …)
   hooks/          useQuery, useTheme, useAuth, usePageTitle
-  services/api/   The only layer the UI uses to reach data (auth, documents, quizzes, …)
-  data/           Mock data + in-memory store (db.ts)
+  services/api/   The only layer the UI uses to reach the backend (auth, documents, quizzes, …)
   utils/          Scoring, formatting, validation, helpers
   theme/          Theme list and storage key
   styles/         index.css: theme tokens as CSS variables
@@ -61,19 +60,39 @@ The mark is an "M" whose center closes like a zipper, with the pull hanging from
 
 Backend contract (`src/services/api/chat.ts`): `send(scope, question)` returns `{ answer, source? }` (`scope` is `'all'` or a document id), plus `suggestions(scope)` and `conversations.list/get/save/remove`. Types: `Conversation`, `ChatMessage`, `SourceRef` in `src/types`.
 
-## Connecting the FastAPI backend
+## Backend integration
 
-1. Set `VITE_USE_MOCK=false` and `VITE_API_URL=http://localhost:8000` (see `.env.example`).
-2. Re-implement each module in `src/services/api/` with real requests, keeping the same function names and return types (`src/types/index.ts` is the contract). `http.ts` is the place for a shared fetch wrapper, auth header and error mapping.
-3. Delete `src/data/db.ts`, `src/data/mockData.ts` and `src/services/api/mockGenerators.ts`.
-4. `useQuery` currently refetches when the mock store changes. With a real backend, call `refetch()` after mutations or switch to TanStack Query.
+All network code is in `src/services/api/`. Pages only import `api` from there.
 
-## Mock behavior to know about
+- `http.ts`: fetch wrapper. Camelizes responses, snake_cases JSON bodies, sends cookies (and a Bearer header if the login response contains `access_token`), retries once after `POST /auth/refresh` on a 401, and sends the user back to the login page if the session cannot be renewed.
+- `mappers.ts`: turns backend payloads into the UI types in `src/types`. **If a field is named differently in your responses, fix it here only.**
+- `invalidate.ts`: after every successful mutation, services call `notify()` and mounted `useQuery` hooks refetch.
 
-- Quiz generation draws from per-document question banks, so it can return fewer questions than requested.
-- Uploaded files get placeholder topics and questions; nothing is actually read.
-- "Ask" and AI Chat answers use keyword matching and say so honestly when nothing matches.
-- Data lives in memory and resets on reload (only the theme and logged-out state persist).
+| UI call | Endpoint |
+|---|---|
+| auth.getCurrentUser / login / register / logout | GET /auth/me, POST /auth/login, POST /auth/register, POST /auth/logout (+ POST /auth/refresh) |
+| documents.list / get / rename / remove | GET /documents, GET /documents/{id}, PATCH /documents/{id}, DELETE /documents/{id} |
+| documents.upload / retry | POST /documents/upload (then polls GET /documents/{id} while `status` is processing, then POST /documents/{id}/topics if topics are empty), POST /documents/{id}/retry |
+| quizzes.generate / list / get | POST /documents/{id}/quizzes, GET /documents/quizzes/saved, GET /documents/quizzes/{id} |
+| quizzes.startAttempt / submit / attempts / attempt | POST .../attempts/start, POST .../attempts, GET .../{id}/attempts, GET /documents/quizzes/attempts/{id} |
+| quizzes.save / rename / remove | PATCH .../{id}/save, PATCH .../{id}, DELETE .../{id} |
+| summaries.generate / get / regenerate | POST /documents/{id}/summary, GET /library/summaries/{id}, POST /documents/summaries/{id}/regenerate |
+| summaries.save / rename / remove | PATCH .../save, PATCH .../{id}, DELETE .../{id} (under /documents/summaries) |
+| folders.* | GET/POST /folders, GET/PATCH/DELETE /folders/{id} |
+| resources.list | GET /library (folder page: GET /library/folders/{id}) |
+| resources.move | PATCH /documents/{id} {folder_id}, PATCH /library/quizzes/{id}/folder, PATCH /library/summaries/{id}/folder |
+| chat.conversations.* / sendMessage / suggestions | GET/POST /conversations, GET/PATCH/DELETE /conversations/{id}, POST /conversations/{id}/messages, GET /chat/suggestions |
+| stats.get | GET /stats |
+
+Things the frontend assumes (check them against `/docs` when something looks empty or returns 422):
+
+- `GET /documents/{id}` returns `topics` (list of `{id, name}`), `size_bytes` and `page_count`.
+- Login/register accept JSON `{email, password}` and `{name, email, password}`. If login uses OAuth2 form data (`username`), change `login()` in `auth.ts`.
+- A quiz question has `id, type, prompt, options, topic_id`. Correct answers and explanations may be hidden until submission: the graded attempt should then carry `correct_answer` and `explanation` on each answer, plus `topic_scores` (`topic_id`, `topic_name`, `score`) and `analysis_text`.
+- `POST .../attempts` takes `{attempt_id, answers: [{question_id, answer}]}`; unanswered questions are sent with an empty answer.
+- `POST /conversations/{id}/messages` takes `{content}` and returns the assistant message, with `sources` (`document_id`, `page_start`, `page_end`, `section`).
+- `GET /library` accepts `type`, `folder_id` and `q` (`resources.ts` sends a few spellings of each).
+- There is no `PATCH /auth/me` yet: quiz defaults are stored in the browser, and editing name or email shows "isn't available yet". Add the endpoint and it starts working with no frontend change.
 
 ## Accessibility
 

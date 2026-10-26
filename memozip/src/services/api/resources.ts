@@ -1,116 +1,59 @@
 import type { Resource, ResourceType } from '@/types';
-import { http } from './http';
+import { notify } from '../invalidate';
 import { documents } from './documents';
+import { http } from './http';
+import { listOf, mapResource } from './mappers';
 import { quizzes } from './quizzes';
 import { summaries } from './summaries';
 
-interface ApiResource {
-  id: string;
-  type: ResourceType;
-  title: string;
-  document_id?: string;
-  document_title?: string | null;
-  folder_id?: string | null;
-  created_at: string;
-  status?: string;
-  question_count?: number;
-  last_score?: number | null;
-}
+type Ref = Pick<Resource, 'type' | 'id'>;
 
-interface ApiLibraryResponse {
-  total_items: number;
-  items: ApiResource[];
-}
-
-function mapResource(item: ApiResource): Resource {
-  return {
-    id: item.id,
-    type: item.type,
-    title: item.title,
-    documentId: item.document_id ?? item.id,
-    sourceTitle: item.document_title ?? undefined,
-    folderId: item.folder_id ?? null,
-    date: item.created_at,
-    score: item.last_score ?? undefined,
-    questionCount: item.question_count,
-  };
-}
+const byNewest = (a: Resource, b: Resource) => +new Date(b.date) - +new Date(a.date);
 
 export const resources = {
-  async list(
-    filter: {
-      type?: ResourceType;
-      folderId?: string;
-      query?: string;
-    } = {},
-  ): Promise<Resource[]> {
-    const params = new URLSearchParams();
+  async list(filter: { type?: ResourceType; folderId?: string; query?: string } = {}): Promise<Resource[]> {
+    const { type, folderId } = filter;
+    const q = filter.query?.trim();
 
-    if (filter.type) params.set('type', filter.type);
-    if (filter.folderId) params.set('folderId', filter.folderId);
-    if (filter.query?.trim()) params.set('q', filter.query.trim());
+    // A folder on its own: the dedicated endpoint is guaranteed to be scoped to that folder.
+    if (folderId && !type && !q) {
+      const raw = await http(`/library/folders/${folderId}`);
+      return listOf(raw).map((r) => mapResource(r, { folderId })).sort(byNewest);
+    }
 
-    const query = params.toString();
-    const endpoint = query ? `/library?${query}` : '/library';
-    const response = await http<ApiLibraryResponse>(endpoint);
-
-    return response.items.map(mapResource);
+    // Both spellings of each filter are sent so it works whichever the backend declares
+    // (see /docs for GET /api/library); delete the ones you do not need.
+    const raw = await http('/library', { query: { type, q, query: q, folder_id: folderId, folderId } });
+    return listOf(raw).map((r) => mapResource(r)).sort(byNewest);
   },
 
+  /** One item as a Resource (used for the actions menu on the course, quiz and summary pages). */
   async get(type: ResourceType, id: string): Promise<Resource> {
-    const response = await http<ApiLibraryResponse>(
-      `/library?type=${type}`,
-    );
-    const item = response.items.find((resource) => resource.id === id);
-
-    if (!item) throw new Error(`${type} not found`);
-
-    return mapResource(item);
+    if (type === 'document') {
+      const d = await documents.get(id);
+      return { id: d.id, type, title: d.title, documentId: d.id, folderId: d.folderId, date: d.createdAt, pages: d.pages };
+    }
+    if (type === 'quiz') {
+      const q = await quizzes.get(id);
+      return { id: q.id, type, title: q.title, documentId: q.documentId, folderId: q.folderId, date: q.createdAt, questionCount: q.questions.length };
+    }
+    const s = await summaries.get(id);
+    return { id: s.id, type, title: s.title, documentId: s.documentId, folderId: s.folderId, date: s.createdAt };
   },
 
-  rename(
-    resource: Pick<Resource, 'type' | 'id'>,
-    title: string,
-  ): Promise<void> {
-    if (resource.type === 'document') {
-      return documents.rename(resource.id, title);
-    }
-
-    if (resource.type === 'quiz') {
-      return quizzes.rename(resource.id, title);
-    }
-
-    return summaries.rename(resource.id, title);
+  rename(r: Ref, title: string): Promise<void> {
+    return r.type === 'document' ? documents.rename(r.id, title) : r.type === 'quiz' ? quizzes.rename(r.id, title) : summaries.rename(r.id, title);
   },
 
-  remove(resource: Pick<Resource, 'type' | 'id'>): Promise<void> {
-    if (resource.type === 'document') {
-      return documents.remove(resource.id);
-    }
-
-    if (resource.type === 'quiz') {
-      return quizzes.remove(resource.id);
-    }
-
-    return summaries.remove(resource.id);
+  remove(r: Ref): Promise<void> {
+    return r.type === 'document' ? documents.remove(r.id) : r.type === 'quiz' ? quizzes.remove(r.id) : summaries.remove(r.id);
   },
 
-  async move(
-    resource: Pick<Resource, 'type' | 'id'>,
-    folderId: string | null,
-  ): Promise<void> {
-    if (resource.type === 'document') {
-      throw new Error('Uploaded documents cannot be moved into saved-material folders.');
-    }
-
-    const endpoint =
-      resource.type === 'quiz'
-        ? `/library/quizzes/${resource.id}/folder`
-        : `/library/summaries/${resource.id}/folder`;
-
-    await http(endpoint, {
-      method: 'PATCH',
-      body: JSON.stringify({ folder_id: folderId }),
-    });
+  /** Moves an item into a folder (null = unfiled). */
+  async move(r: Ref, folderId: string | null): Promise<void> {
+    if (r.type === 'document') await http(`/documents/${r.id}`, { method: 'PATCH', json: { folderId } });
+    else if (r.type === 'quiz') await http(`/library/quizzes/${r.id}/folder`, { method: 'PATCH', json: { folderId } });
+    else await http(`/library/summaries/${r.id}/folder`, { method: 'PATCH', json: { folderId } });
+    notify();
   },
 };
