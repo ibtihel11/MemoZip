@@ -2,7 +2,7 @@ import { forwardRef, useId, type InputHTMLAttributes, type TextareaHTMLAttribute
 import { cn } from '@/utils/cn';
 
 const field =
-  'w-full rounded-lg border border-border bg-surface px-3.5 text-[15px] text-fg placeholder:text-subtle transition ' +
+  'w-full rounded-lg border border-border bg-surface px-3.5 text-[0.9375rem] text-fg placeholder:text-subtle transition ' +
   'hover:border-border-strong focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-50';
 
 interface FieldProps {

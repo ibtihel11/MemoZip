@@ -66,7 +66,7 @@ export default function QuizTake() {
   if (submitting) return <LoadingState label="Checking your answers…" description="Working out what you know and what to review." className="min-h-screen" />;
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-4 pb-6 pt-4 sm:px-6">
+    <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-4 pb-6 pt-4 sm:px-6">
       <header className="flex items-center gap-3">
         <button
           type="button"
@@ -107,7 +107,7 @@ export default function QuizTake() {
       <main className="flex flex-1 flex-col justify-center py-8">
         <div key={q.id} className="animate-question-in">
           <p className="mb-3 text-sm font-medium text-accent-text">{TYPE_LABEL[q.type]}</p>
-          <h1 className="text-2xl font-semibold leading-snug sm:text-[28px]">{q.prompt}</h1>
+          <h1 className="text-2xl font-semibold leading-snug sm:text-[1.75rem]">{q.prompt}</h1>
 
           <div className="mt-8">
             {q.type === 'short_answer' ? (
@@ -128,7 +128,7 @@ export default function QuizTake() {
                       <input type="radio" name={q.id} value={opt} checked={selected} onChange={() => setAnswer(opt)} className="peer sr-only" />
                       <span
                         className={cn(
-                          'flex cursor-pointer items-center gap-4 rounded-xl border px-4 py-4 text-[17px] transition duration-150',
+                          'flex cursor-pointer items-center gap-4 rounded-xl border px-4 py-4 text-[1.0625rem] transition duration-150',
                           'peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent',
                           selected ? 'border-accent bg-accent/10' : 'border-border bg-surface hover:border-border-strong hover:bg-surface2/60',
                         )}

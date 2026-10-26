@@ -35,7 +35,7 @@ src/
 
 Three complete palettes, switchable from the navbar (or Settings → Appearance), applied instantly with a short color fade and remembered under `memozip-theme`:
 
-| | Tokyo Night / Amethyst (default) | Monokai / Terminal Code | Nord / Deep Arctic |
+| | Tokyo Night / Amethyst (default) | Neon Amber (Monokai / Terminal Code) | Frost (Nord / Deep Arctic) |
 |---|---|---|---|
 | Background | `#0F0C20` | `#18181B` | `#1E293B` |
 | Primary | `#A855F7` | `#EAB308` | `#38BDF8` |
@@ -45,9 +45,15 @@ Three complete palettes, switchable from the navbar (or Settings → Appearance)
 
 Everything lives in `src/styles/index.css`. Each theme is a block of semantic variables (`--background`, `--surface`, `--border`, `--text`, `--muted`, `--primary`, `--warning`, `--mastery`, …) selected by `data-theme` on `<html>`. `tailwind.config.js` maps class names (`bg-bg`, `bg-accent`, `text-warn-text`, …) to those variables, so components never contain colors and every part of the UI follows the active theme automatically. Beyond color, each theme also sets its own corner radius (`--radius-scale`), heading font (Figtree vs JetBrains Mono) and page backdrop (amethyst glow, editor dot grid, or a faint northern-light wash).
 
+The theme ids stored in `localStorage` and in `users.theme` stay `tokyo-night`, `monokai` and `nord`; only the display names changed (`src/theme/themes.ts`).
+
 **Adding a theme:** add a `[data-theme='name']` block with the same variables, add the name to `ThemeName` (`src/types`) and an entry in `src/theme/themes.ts`.
 
 Small text uses lighter tints where needed (`--warning-text` red in Monokai, `--mastery-text` teal in Nord) so it stays AA-readable. Meaning is never carried by color alone (labels and percentages always appear).
+
+## Brand
+
+The mark is an "M" whose center closes like a zipper, with the pull hanging from it (memory, compressed). In the app it is `LogoMark` / `Logo` (`src/components/Logo.tsx`) drawn with theme tokens, so it recolors with the active theme, and the browser-tab favicon is rebuilt on every theme change (`src/theme/favicon.ts`). Static files for each theme (mark, horizontal lockup, single-color mark) are in `public/brand/`. The lockup text uses Figtree; install it or outline the text before using the lockups in print.
 
 ## AI Chat
 

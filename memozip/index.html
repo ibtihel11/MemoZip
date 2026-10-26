@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0F0C20" />
     <meta name="description" content="MemoZip turns your course documents into quizzes and summaries, and shows you what to review." />
-    <link rel="icon" type="image/png" href="/src/assets/nobglogo.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>MemoZip</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
     <script>
+      // Apply the saved theme before first paint to avoid a flash.
       (function () {
         try {
           var t = localStorage.getItem('memozip-theme');

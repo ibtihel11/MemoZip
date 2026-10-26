@@ -33,7 +33,7 @@ export default function QuizDetail() {
   const latest = list[0];
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-4xl">
       <PageHeader
         back={{ to: '/library', label: 'Library' }}
         title={q.title}

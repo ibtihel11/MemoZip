@@ -32,9 +32,13 @@ export function Navbar() {
   const navigate = useNavigate();
 
   return (
-    <header className="pointer-events-none sticky top-0 z-30 flex justify-center px-3 pt-3 sm:px-4 sm:pt-4">
-      <div className="pointer-events-auto flex h-14 w-full max-w-md items-center justify-between gap-2 rounded-full border border-border bg-surface/80 py-1.5 pl-4 pr-2 shadow-[0_8px_28px_rgb(0_0_0/0.28)] backdrop-blur-xl lg:w-auto lg:max-w-none lg:justify-center lg:gap-1 lg:pl-3">
-        <Link to="/" aria-label="MemoZip home" className="shrink-0 rounded-full lg:pr-3">
+    <header className="pointer-events-none sticky top-0 z-30 flex justify-center px-3 pt-4 sm:px-4 sm:pt-5">
+      <div className="pointer-events-auto flex h-16 w-full max-w-md items-center justify-between gap-2 rounded-full border border-border bg-surface/80 py-2 pl-5 pr-2.5 shadow-[0_8px_28px_rgb(0_0_0/0.28)] backdrop-blur-xl lg:w-auto lg:max-w-none lg:justify-center lg:gap-2 lg:pl-7">
+        <Link 
+          to="/" 
+          aria-label="MemoZip home" 
+          className="shrink-0 rounded-full p-2 transition-transform hover:scale-105 active:scale-95 lg:pr-4 lg:pl-1 lg:pt-2"
+        >
           <Logo />
         </Link>
 
@@ -46,12 +50,12 @@ export function Navbar() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'flex h-9 items-center gap-2 rounded-full px-3.5 text-sm font-medium transition',
+                  'flex h-11 items-center gap-2 rounded-full px-4 text-[0.9375rem] font-medium transition',
                   isActive ? 'bg-accent/15 text-accent-text' : 'text-muted hover:bg-surface2 hover:text-fg',
                 )
               }
             >
-              <Icon size={17} aria-hidden="true" />
+              <Icon size={18} aria-hidden="true" />
               {label}
             </NavLink>
           ))}
@@ -61,7 +65,7 @@ export function Navbar() {
           <ThemeSwitcher />
           <Dropdown
             label="Account menu"
-            triggerClassName="grid h-9 w-9 place-items-center rounded-full bg-accent/15 text-sm font-semibold text-accent-text transition hover:bg-accent/25"
+            triggerClassName="grid h-10 w-10 place-items-center rounded-full bg-accent/15 lg:h-11 lg:w-11 text-[0.9375rem] font-semibold text-accent-text transition hover:bg-accent/25"
             items={[
               { label: 'Settings', icon: <Settings size={16} />, onSelect: () => navigate('/settings') },
               {
@@ -98,10 +102,10 @@ export function MobileNav() {
               to={to}
               end={end}
               className={({ isActive }) =>
-                cn('flex flex-col items-center gap-1 py-2.5 text-xs font-medium transition', isActive ? 'text-accent-text' : 'text-subtle hover:text-fg')
+                cn('flex flex-col items-center gap-1 py-3 text-xs font-medium transition', isActive ? 'text-accent-text' : 'text-subtle hover:text-fg')
               }
             >
-              <Icon size={21} aria-hidden="true" />
+              <Icon size={22} aria-hidden="true" />
               {label}
             </NavLink>
           </li>

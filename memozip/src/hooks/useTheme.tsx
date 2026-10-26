@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ThemeName } from '@/types';
+import { applyThemeFavicon } from '@/theme/favicon';
 import { DEFAULT_THEME, isThemeName, themes, THEME_STORAGE_KEY } from '@/theme/themes';
 
 interface ThemeContextValue {
@@ -36,6 +37,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
     first.current = false;
     root.dataset.theme = theme;
+    applyThemeFavicon();
     document
       .querySelector('meta[name="theme-color"]')
       ?.setAttribute('content', themes.find((t) => t.name === theme)?.browserColor ?? '#0F0C20');

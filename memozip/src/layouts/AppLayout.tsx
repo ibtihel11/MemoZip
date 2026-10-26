@@ -21,7 +21,7 @@ export function AppLayout() {
       </a>
       <Navbar />
       <main id="main" className="min-w-0 flex-1">
-        <div key={pageKey} className="mx-auto max-w-5xl animate-page-in px-4 pb-28 pt-8 sm:px-8 sm:pt-12 lg:pb-20">
+        <div key={pageKey} className="mx-auto max-w-6xl animate-page-in px-5 pb-28 pt-9 sm:px-10 sm:pt-14 lg:pb-24">
           <Outlet />
         </div>
       </main>

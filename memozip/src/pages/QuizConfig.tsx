@@ -59,7 +59,7 @@ export default function QuizConfig() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       <PageHeader back={{ to: `/documents/${id}`, label: doc.data.title }} title="Generate a quiz" subtitle={`From ${doc.data.title}`} />
       <Card className="space-y-8 p-6">
         <SegmentedControl label="Number of questions" value={count} options={COUNTS} onChange={setCount} />

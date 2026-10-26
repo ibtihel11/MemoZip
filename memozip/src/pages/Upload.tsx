@@ -66,7 +66,7 @@ export default function Upload() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       <PageHeader
         title={phase === 'ready' ? 'Your course is ready' : phase === 'processing' ? 'Analyzing your course…' : 'Upload your course'}
         subtitle={phase === 'idle' ? 'Add a PDF and MemoZip will turn it into study material.' : undefined}

@@ -39,7 +39,7 @@ export default function SummaryPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       <BackLink to={doc.data ? `/documents/${doc.data.id}` : '/library'}>{doc.data?.title ?? 'Library'}</BackLink>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -68,7 +68,7 @@ export default function SummaryPage() {
 
         <section className="mt-10" aria-labelledby="overview">
           <h2 id="overview" className="border-b border-border pb-2 text-xl font-semibold">Overview</h2>
-          <p className="mt-4 text-[17px] leading-8 text-muted">{s.overview}</p>
+          <p className="mt-4 text-[1.0625rem] leading-8 text-muted">{s.overview}</p>
         </section>
 
         <section className="mt-10" aria-labelledby="concepts">
@@ -79,7 +79,7 @@ export default function SummaryPage() {
                 <span className="pt-0.5 text-sm font-semibold tabular-nums text-accent-text">{String(i + 1).padStart(2, '0')}</span>
                 <div>
                   <h3 className="font-semibold">{c.title}</h3>
-                  <p className="mt-1 text-[17px] leading-8 text-muted">{c.body}</p>
+                  <p className="mt-1 text-[1.0625rem] leading-8 text-muted">{c.body}</p>
                 </div>
               </li>
             ))}
@@ -90,7 +90,7 @@ export default function SummaryPage() {
           <h2 id="points" className="border-b border-border pb-2 text-xl font-semibold">Key points</h2>
           <ul className="mt-5 space-y-3">
             {s.keyPoints.map((p) => (
-              <li key={p} className="flex gap-3 text-[17px] leading-8">
+              <li key={p} className="flex gap-3 text-[1.0625rem] leading-8">
                 <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
                 {p}
               </li>

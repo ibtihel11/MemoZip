@@ -1,6 +1,5 @@
 import re
 
-
 def chunk_text(
     text: str,
     chunk_size: int = 500,
@@ -12,18 +11,43 @@ def chunk_text(
     if overlap < 0 or overlap >= chunk_size:
         raise ValueError("overlap must be between zero and chunk_size")
 
-    words = re.findall(r"\S+", text)
+    text = re.sub(r"[ \t]+", " ", text).strip()
+
+    if not text:
+        return []
+
+    sentences = re.split(r"(?<=[.!?])\s+|\n+", text)
     chunks = []
+    current_words = []
 
-    for start in range(0, len(words), chunk_size - overlap):
-        chunk_words = words[start : start + chunk_size]
+    for sentence in sentences:
+        sentence_words = sentence.split()
 
-        if not chunk_words:
-            break
+        if not sentence_words:
+            continue
 
-        chunks.append(" ".join(chunk_words))
+        if len(sentence_words) > chunk_size:
+            if current_words:
+                chunks.append(" ".join(current_words))
+                current_words = []
 
-        if start + chunk_size >= len(words):
-            break
+            for start in range(0, len(sentence_words), chunk_size - overlap):
+                part = sentence_words[start : start + chunk_size]
+                if part:
+                    chunks.append(" ".join(part))
+
+                if start + chunk_size >= len(sentence_words):
+                    break
+
+            continue
+
+        if len(current_words) + len(sentence_words) > chunk_size:
+            chunks.append(" ".join(current_words))
+            current_words = current_words[-overlap:] if overlap else []
+
+        current_words.extend(sentence_words)
+
+    if current_words:
+        chunks.append(" ".join(current_words))
 
     return chunks

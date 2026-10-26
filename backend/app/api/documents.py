@@ -4,7 +4,7 @@ from uuid import uuid4
 from uuid import UUID
 import uuid
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.schemas.summary import SummarySaveRequest
@@ -25,6 +25,7 @@ from app.schemas.quiz import QuizGenerationRequest, QuizUpdateRequest, QuizSaveR
 from app.models.folder import Folder
 from app.schemas.document import DocumentUpdateRequest
 from app.models.topic import Topic
+from app.services.document_processing_service import process_document
 
 router = APIRouter(prefix="/api/documents", tags=["Documents"])
 
@@ -60,6 +61,7 @@ def list_documents(
         for document in documents
     ]
     
+
 @router.get("/{document_id}")
 def get_document(
     document_id: uuid.UUID,
@@ -81,6 +83,13 @@ def get_document(
             detail="Document not found",
         )
 
+    topics = (
+        db.query(Topic)
+        .filter(Topic.document_id == document.id)
+        .order_by(Topic.position.asc())
+        .all()
+    )
+
     return {
         "id": str(document.id),
         "title": document.title,
@@ -94,6 +103,14 @@ def get_document(
         "created_at": document.created_at,
         "updated_at": document.updated_at,
         "processed_at": document.processed_at,
+        "topics": [
+            {
+                "id": str(topic.id),
+                "name": topic.name,
+                "position": topic.position,
+            }
+            for topic in topics
+        ],
     }
 
 @router.patch("/{document_id}")
@@ -196,9 +213,10 @@ def delete_document(
         "message": "Document deleted successfully",
         "id": str(document_id),
     }
-    
+ 
 @router.post("/upload", status_code=status.HTTP_201_CREATED)
 def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -252,24 +270,6 @@ def upload_document(
                 detail="The uploaded file is not a valid PDF",
             )
 
-        try:
-            with file_path.open("rb") as source:
-                file_content = source.read()
-
-            page_count, pages = extract_pdf_text(file_content)
-
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(exc),
-            ) from exc
-
-        except Exception as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Unable to read this PDF",
-            ) from exc
-
         document = Document(
             user_id=current_user.id,
             title=Path(original_name).stem or "Untitled document",
@@ -278,32 +278,17 @@ def upload_document(
             mime_type="application/pdf",
             size_bytes=total_size,
             sha256=file_hash.hexdigest(),
-            page_count=page_count,
         )
 
         db.add(document)
-        db.flush()
-
-        chunk_index = 0
-
-        for page in pages:
-            page_chunks = chunk_text(page["text"])
-
-            for content in page_chunks:
-                db.add(
-                    DocumentChunk(
-                        document_id=document.id,
-                        chunk_index=chunk_index,
-                        page_start=page["page_number"],
-                        page_end=page["page_number"],
-                        content=content,
-                    )
-                )
-                chunk_index += 1
-
-        document.status = "ready"
         db.commit()
         db.refresh(document)
+
+        background_tasks.add_task(
+            process_document,
+            document.id,
+            str(file_path),
+        )
 
         return {
             "id": str(document.id),
@@ -312,6 +297,7 @@ def upload_document(
             "size_bytes": document.size_bytes,
             "page_count": document.page_count,
             "status": document.status,
+            "processing_step": document.processing_step,
             "created_at": document.created_at,
         }
 
@@ -573,3 +559,60 @@ def update_document_summary(
         data=payload.model_dump(exclude_unset=True),
         db=db,
     )
+
+
+@router.post("/{document_id}/retry", status_code=status.HTTP_202_ACCEPTED)
+def retry_document(
+    document_id: UUID,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    document = (
+        db.query(Document)
+        .filter(
+            Document.id == document_id,
+            Document.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if document is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+
+    if document.status != "failed":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only failed documents can be retried",
+        )
+
+    file_path = Path(settings.upload_dir) / document.storage_key
+
+    if not file_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Original PDF not found. Please upload the document again.",
+        )
+
+    document.status = "uploaded"
+    document.processing_step = 0
+    document.error_message = None
+    document.processed_at = None
+
+    db.commit()
+
+    background_tasks.add_task(
+        process_document,
+        document.id,
+        str(file_path),
+    )
+
+    return {
+        "id": str(document.id),
+        "status": document.status,
+        "processing_step": document.processing_step,
+        "message": "Document processing has been restarted",
+    }

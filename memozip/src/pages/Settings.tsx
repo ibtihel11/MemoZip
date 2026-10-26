@@ -69,7 +69,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-3xl">
       <PageHeader title="Settings" subtitle="Make MemoZip feel like yours." />
 
       <div className="space-y-5">

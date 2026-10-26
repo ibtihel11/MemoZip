@@ -60,7 +60,7 @@ export default function Ask() {
   };
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-10rem)] max-w-2xl flex-col">
+    <div className="mx-auto flex min-h-[calc(100vh-13rem)] max-w-3xl flex-col">
       <BackLink to={`/documents/${id}`}>Back to course</BackLink>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -111,7 +111,7 @@ export default function Ask() {
                   </span>
                   <div className="min-w-0">
                     <p className="sr-only">Answer</p>
-                    <p className="text-[17px] leading-8">{m.text}</p>
+                    <p className="text-[1.0625rem] leading-8">{m.text}</p>
                     {m.source && (
                       <p className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-muted">
                         <BookOpen size={15} className="text-accent-text" aria-hidden="true" />
@@ -149,7 +149,7 @@ export default function Ask() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKey}
             placeholder="Why does TCP use slow start?"
-            className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-[16px] placeholder:text-subtle focus:outline-none"
+            className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-[1rem] placeholder:text-subtle focus:outline-none"
           />
           <button
             type="submit"

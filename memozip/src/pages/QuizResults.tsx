@@ -57,7 +57,7 @@ export default function QuizResults() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-4xl">
       <p className="mb-4 text-sm text-muted">
         <Link to={`/quizzes/${q.id}`} className="hover:text-fg hover:underline">{q.title}</Link>
         {ordered.length > 1 && ` · Attempt ${position + 1} of ${ordered.length}, ${formatShortDate(a.completedAt)}`}
@@ -135,7 +135,7 @@ export default function QuizResults() {
                   <Card className="p-5 sm:p-6">
                     {topic && <Badge className="mb-3">{topic}</Badge>}
                     <h3 className="font-semibold leading-snug">{question.prompt}</h3>
-                    <dl className="mt-4 space-y-3 text-[15px]">
+                    <dl className="mt-4 space-y-3 text-[0.9375rem]">
                       <div className="rounded-lg border border-warn/40 bg-warn/10 px-4 py-3">
                         <dt className="text-sm font-medium text-warn-text">Your answer</dt>
                         <dd className="mt-0.5">{r.answer.trim() || 'No answer'}</dd>

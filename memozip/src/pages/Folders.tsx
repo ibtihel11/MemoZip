@@ -45,7 +45,7 @@ export default function Folders() {
                   <FolderIcon size={20} aria-hidden="true" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-[15px] font-semibold">
+                  <h2 className="truncate text-[0.9375rem] font-semibold">
                     <Link to={`/folders/${f.id}`} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none">{f.name}</Link>
                   </h2>
                   <p className="text-sm text-muted">{f.itemCount ?? 0} {f.itemCount === 1 ? 'item' : 'items'}</p>

@@ -47,14 +47,14 @@
   --shadow-card: none;
   --shadow-pop: 0 16px 48px rgb(0 0 0 / 0.45);
   --radius-scale: 1;
- --font-display: 'Figtree', ui-sans-serif, system-ui, sans-serif; 
+  --font-display: 'Figtree', ui-sans-serif, system-ui, sans-serif;
   --display-tracking: -0.02em;
   /* Soft amethyst glow behind the page header */
   --backdrop: radial-gradient(60rem 26rem at 50% -8rem, rgb(168 85 247 / 0.16), transparent 70%);
   --backdrop-size: auto;
 }
 
-/* Theme 2: Monokai / Terminal Code */
+/* Theme 2: Neon Amber (id 'monokai'): terminal code */
 [data-theme='monokai'] {
   --background: 24 24 27;        /* Code Charcoal  #18181B */
   --surface: 32 32 36;
@@ -76,14 +76,14 @@
   --shadow-card: none;
   --shadow-pop: 0 16px 48px rgb(0 0 0 / 0.55);
   --radius-scale: 0.5;           /* sharper, IDE-like corners */
-  --font-display: 'Figtree', ui-sans-serif, system-ui, sans-serif; 
+  --font-display: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
   --display-tracking: -0.04em;
   /* Faint editor dot grid */
   --backdrop: radial-gradient(rgb(250 250 250 / 0.07) 1px, transparent 1px);
   --backdrop-size: 22px 22px;
 }
 
-/* Theme 3: Nord / Deep Arctic */
+/* Theme 3: Frost (id 'nord'): deep arctic */
 [data-theme='nord'] {
   --background: 30 41 59;        /* Polar Night  #1E293B */
   --surface: 36 48 69;
@@ -117,6 +117,7 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    font-size: 106.25%; /* 17px root: everything rem-based scales up ~6% */
     scroll-behavior: smooth;
     color-scheme: dark;
   }

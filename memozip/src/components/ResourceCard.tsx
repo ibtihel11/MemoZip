@@ -29,7 +29,7 @@ export function ResourceCard({ resource, menu, folderName }: Props) {
         <Icon size={20} aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
-        <h3 className="truncate text-[15px] font-semibold">
+        <h3 className="truncate text-[0.9375rem] font-semibold">
           <Link to={resourcePath(resource)} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none">
             {resource.title}
           </Link>

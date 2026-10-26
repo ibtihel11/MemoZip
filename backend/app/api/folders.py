@@ -98,6 +98,105 @@ def list_folders(
 
     return result
 
+@router.get("/{folder_id}")
+def get_folder(
+    folder_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    import uuid
+
+    try:
+        parsed_id = uuid.UUID(folder_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid folder ID",
+        )
+
+    folder = (
+        db.query(Folder)
+        .filter(
+            Folder.id == parsed_id,
+            Folder.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if folder is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Folder not found",
+        )
+
+    documents = (
+        db.query(Document)
+        .filter(
+            Document.folder_id == folder.id,
+            Document.user_id == current_user.id,
+        )
+        .order_by(Document.created_at.desc())
+        .all()
+    )
+
+    quizzes = (
+        db.query(Quiz)
+        .filter(
+            Quiz.folder_id == folder.id,
+            Quiz.user_id == current_user.id,
+            Quiz.is_saved.is_(True),
+        )
+        .order_by(Quiz.created_at.desc())
+        .all()
+    )
+
+    summaries = (
+        db.query(Summary)
+        .filter(
+            Summary.folder_id == folder.id,
+            Summary.user_id == current_user.id,
+            Summary.is_saved.is_(True),
+        )
+        .order_by(Summary.created_at.desc())
+        .all()
+    )
+
+    return {
+        "id": str(folder.id),
+        "name": folder.name,
+        "created_at": folder.created_at,
+        "updated_at": folder.updated_at,
+        "documents": [
+            {
+                "id": str(document.id),
+                "title": document.title,
+                "file_name": document.file_name,
+                "status": document.status,
+                "page_count": document.page_count,
+                "created_at": document.created_at,
+            }
+            for document in documents
+        ],
+        "quizzes": [
+            {
+                "id": str(quiz.id),
+                "title": quiz.title,
+                "document_id": str(quiz.document_id) if quiz.document_id else None,
+                "created_at": quiz.created_at,
+            }
+            for quiz in quizzes
+        ],
+        "summaries": [
+            {
+                "id": str(summary.id),
+                "title": summary.title,
+                "document_id": str(summary.document_id) if summary.document_id else None,
+                "created_at": summary.created_at,
+            }
+            for summary in summaries
+        ],
+    }
+
 @router.patch("/{folder_id}")
 def rename_folder(
     folder_id: str,

@@ -1,46 +1,51 @@
 from fastapi import FastAPI, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.schemas.auth import (
-    RegisterRequest,
-    RefreshRequest,
-    UserResponse,
-    LoginRequest,
-    TokenResponse,
-)
+from app.schemas.auth import RegisterRequest, RefreshRequest, UserResponse, LoginRequest, TokenResponse
 from app.services.auth_service import register_user, authenticate_user
-from app.services.token_service import (
-    issue_tokens,
-    rotate_refresh_token,
-    revoke_refresh_token,
-)
+from app.services.token_service import issue_tokens, rotate_refresh_token, revoke_refresh_token
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.api.folders import router as folders_router
 from app.api.library import router as library_router
-
 from app.api.documents import router as documents_router
+from app.api.conversations import router as conversations_router
+from app.api.chat import router as chat_router
+from app.api.stats import router as stats_router
 
 app = FastAPI(title=settings.app_name)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(documents_router)
 app.include_router(folders_router)
 app.include_router(library_router)
+app.include_router(conversations_router)
+app.include_router(chat_router)
+app.include_router(stats_router)
 
 @app.get("/")
 def root():
     return {"message": "MemoZip API is running"}
-
 
 @app.get("/api/health/db")
 def database_health(db: Session = Depends(get_db)):
     from sqlalchemy import text
     db.execute(text("SELECT 1"))
     return {"database": "connected"}
-
 
 @app.post(
     "/api/auth/register",

@@ -15,7 +15,7 @@ export function ThemeSwitcher({ showLabels = true, className }: { showLabels?: b
   return (
     <fieldset className={className}>
       <legend className="sr-only">Color theme</legend>
-      <div className="inline-flex rounded-full border border-border bg-surface2/60 p-0.5">
+      <div className="inline-flex rounded-full border border-border bg-surface2/60 p-1">
         {themes.map((t) => {
           const active = t.name === theme;
           return (
@@ -23,7 +23,7 @@ export function ThemeSwitcher({ showLabels = true, className }: { showLabels?: b
               <input type="radio" name={name} value={t.name} checked={active} onChange={() => setTheme(t.name)} className="peer sr-only" />
               <span
                 className={cn(
-                  'flex h-8 cursor-pointer items-center gap-2 rounded-full px-2 text-sm font-medium transition',
+                  'flex h-10 cursor-pointer items-center gap-2 rounded-full px-2 text-[0.9375rem] lg:px-2.5 font-medium transition',
                   showLabels && 'xl:px-3',
                   'peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-accent',
                   active ? 'bg-surface text-fg ring-1 ring-border-strong' : 'text-muted hover:text-fg',

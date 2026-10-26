@@ -57,7 +57,7 @@ export default function Library() {
             value={q}
             onChange={(e) => update({ q: e.target.value })}
             placeholder="Search by title or course"
-            className="h-11 w-full rounded-lg border border-border bg-surface pl-10 pr-3.5 text-[15px] placeholder:text-subtle transition hover:border-border-strong focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+            className="h-11 w-full rounded-lg border border-border bg-surface pl-10 pr-3.5 text-[0.9375rem] placeholder:text-subtle transition hover:border-border-strong focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
           />
         </div>
       </div>

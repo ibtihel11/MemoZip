@@ -1,7 +1,3 @@
-/**
- * Realistic mock data used until the FastAPI backend is connected.
- * Nothing outside src/data and src/services/api should import this file.
- */
 import type {
   Conversation, Difficulty, Document, Folder, Question, QuestionDifficulty, Quiz, QuizAttempt, Summary, Topic, User,
 } from '@/types';

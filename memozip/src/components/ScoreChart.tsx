@@ -18,15 +18,15 @@ export function ScoreChart({ attempts }: { attempts: QuizAttempt[] }) {
         {[0, 50, 100].map((g) => (
           <g key={g}>
             <line x1={padL} x2={W - padR} y1={y(g)} y2={y(g)} className="stroke-border" strokeDasharray={g === 0 ? undefined : '3 5'} />
-            <text x={padL - 8} y={y(g) + 4} textAnchor="end" className="fill-subtle text-[11px]">{g}%</text>
+            <text x={padL - 8} y={y(g) + 4} textAnchor="end" className="fill-subtle text-[0.6875rem]">{g}%</text>
           </g>
         ))}
         <path d={line} fill="none" className="stroke-accent" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         {data.map((a, i) => (
           <g key={a.id}>
             <circle cx={x(i)} cy={y(a.score)} r="5" className="fill-surface stroke-accent" strokeWidth="2.5" />
-            <text x={x(i)} y={y(a.score) - 12} textAnchor="middle" className="fill-fg text-[12px] font-semibold">{a.score}%</text>
-            <text x={x(i)} y={H - 10} textAnchor="middle" className="fill-subtle text-[11px]">{formatShortDate(a.completedAt)}</text>
+            <text x={x(i)} y={y(a.score) - 12} textAnchor="middle" className="fill-fg text-[0.75rem] font-semibold">{a.score}%</text>
+            <text x={x(i)} y={H - 10} textAnchor="middle" className="fill-subtle text-[0.6875rem]">{formatShortDate(a.completedAt)}</text>
           </g>
         ))}
       </svg>

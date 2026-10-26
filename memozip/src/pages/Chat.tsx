@@ -132,7 +132,7 @@ export default function Chat() {
   const empty = messages.length === 0;
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-11rem)] max-w-3xl flex-col">
+    <div className="mx-auto flex min-h-[calc(100vh-13rem)] max-w-4xl flex-col">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold sm:text-3xl">AI Chat</h1>
@@ -228,7 +228,7 @@ export default function Chat() {
                   </span>
                   <div className="min-w-0">
                     <p className="sr-only">Answer</p>
-                    <p className="text-[17px] leading-8">{m.text}</p>
+                    <p className="text-[1.0625rem] leading-8">{m.text}</p>
                     {m.source && <SourceChip source={m.source} />}
                   </div>
                 </div>
@@ -262,7 +262,7 @@ export default function Chat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={onKey}
             placeholder="Ask about your courses…"
-            className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-[16px] placeholder:text-subtle focus:outline-none"
+            className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-[1rem] placeholder:text-subtle focus:outline-none"
           />
           <button
             type="submit"
