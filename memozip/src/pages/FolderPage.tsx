@@ -53,7 +53,7 @@ export default function FolderPage() {
         </EmptyState>
       )}
       {inFolder.data && inFolder.data.length > 0 && (
-        <ul className="grid gap-3 md:grid-cols-2">
+        <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {inFolder.data.map((r) => (
             <li key={`${r.type}-${r.id}`}><ResourceCard resource={r} menu={getMenu(r)} /></li>
           ))}

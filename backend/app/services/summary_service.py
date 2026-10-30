@@ -1,6 +1,4 @@
-
 from uuid import UUID
-
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -13,6 +11,7 @@ from app.schemas.summary import SummaryGenerated
 from app.services.llm_service import generate_summary
 from app.models.folder import Folder
 from app.schemas.summary import SummaryGenerated, SummaryUpdateRequest
+from app.services.text_budget import sample_text
 
 def create_summary(
     document_id: UUID,
@@ -38,9 +37,7 @@ def create_summary(
         .order_by(DocumentChunk.chunk_index)
     ).all()
 
-    document_text = "\n\n".join(
-        chunk.content for chunk in chunks
-    ).strip()
+    document_text = sample_text([chunk.content for chunk in chunks]).strip()
 
     if not document_text:
         raise HTTPException(
@@ -292,9 +289,7 @@ def regenerate_summary(
         .order_by(DocumentChunk.chunk_index)
     ).all()
 
-    document_text = "\n\n".join(
-        chunk.content for chunk in chunks
-    ).strip()
+    document_text = sample_text([chunk.content for chunk in chunks]).strip()
 
     if not document_text:
         raise HTTPException(

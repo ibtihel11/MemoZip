@@ -39,7 +39,7 @@ export default function SummaryPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-4xl">
       <BackLink to={doc.data ? `/documents/${doc.data.id}` : '/library'}>{doc.data?.title ?? 'Library'}</BackLink>
 
       <div className="flex flex-wrap items-center gap-2">

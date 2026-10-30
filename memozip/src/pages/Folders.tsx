@@ -37,7 +37,7 @@ export default function Folders() {
       )}
 
       {folders.data && folders.data.length > 0 && (
-        <ul className="grid gap-3 sm:grid-cols-2">
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {folders.data.map((f) => (
             <li key={f.id}>
               <Card interactive className="relative flex items-center gap-4 p-4 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-accent">

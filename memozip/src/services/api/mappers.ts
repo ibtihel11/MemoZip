@@ -7,7 +7,7 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type {
-  AnswerRecord, ChatMessage, Conversation, Difficulty, Document, Folder, Question, QuestionDifficulty,
+  AnswerRecord, ChatMessage, ChatSuggestion, Conversation, Difficulty, Document, Folder, Question, QuestionDifficulty,
   QuestionType, Quiz, QuizAttempt, Resource, ResourceType, SourceRef, Stats, Summary, Topic, User,
 } from '@/types';
 
@@ -37,7 +37,7 @@ export function mapUser(raw: Raw, prefs: { defaultDifficulty?: Difficulty; defau
   const u = raw?.user ?? raw;
   return {
     id: str(u.id),
-    name: str(u.name),
+    name: str(u.name ?? u.fullName),
     email: str(u.email),
     defaultDifficulty: asDifficulty(u.defaultDifficulty ?? prefs.defaultDifficulty),
     defaultQuestionCount: Number(u.defaultQuestionCount ?? prefs.defaultQuestionCount ?? 15),
@@ -78,11 +78,17 @@ export function mapQuestion(raw: Raw): Question {
       options = undefined;
     }
   }
+  let type = asQuestionType(raw.type ?? raw.questionType);
+  let choices: string[] | undefined = Array.isArray(options) && options.length > 0 ? options.map(str) : undefined;
+  // The backend does not always send options for true/false questions: they are always the same two.
+  if (type === 'true_false' && !choices) choices = ['True', 'False'];
+  // A multiple-choice question with no options could not be answered; fall back to a text answer.
+  if (type === 'multiple_choice' && !choices) type = 'short_answer';
   return {
     id: str(raw.id),
-    type: asQuestionType(raw.type ?? raw.questionType),
+    type,
     prompt: str(raw.prompt ?? raw.question ?? raw.text),
-    options: Array.isArray(options) ? options.map(str) : undefined,
+    options: choices,
     // The backend may keep these hidden until the quiz is submitted; the results page then reads
     // them from the attempt's answers instead (see mapAttempt).
     correctAnswer: str(raw.correctAnswer),
@@ -107,11 +113,12 @@ export function mapQuiz(raw: Raw): Quiz {
 }
 
 export function mapAttempt(raw: Raw): QuizAttempt {
-  const answers: AnswerRecord[] = arr(raw.answers).map((a) => ({
-    questionId: str(a.questionId ?? a.question?.id),
-    answer: str(a.answer ?? a.answerText ?? a.userAnswer),
-    correct: Boolean(a.isCorrect ?? a.correct),
-    correctAnswer: a.correctAnswer ?? a.question?.correctAnswer ?? undefined,
+  const rawAnswers = [raw.answers, raw.results, raw.questionResults, raw.responses, raw.details, raw.review, raw.questions].find((v) => Array.isArray(v) && v.length > 0) ?? [];
+  const answers: AnswerRecord[] = rawAnswers.map((a: Raw) => ({
+    questionId: str(a.questionId ?? a.question?.id ?? a.id),
+    answer: str(a.answer ?? a.answerText ?? a.userAnswer ?? a.selectedAnswer ?? a.submittedAnswer ?? a.studentAnswer),
+    correct: Boolean(a.isCorrect ?? a.correct ?? a.wasCorrect),
+    correctAnswer: a.correctAnswer ?? a.expectedAnswer ?? a.question?.correctAnswer ?? undefined,
     explanation: a.explanation ?? a.question?.explanation ?? undefined,
   }));
   const total = Number(raw.total ?? raw.totalCount ?? raw.totalQuestions ?? answers.length);
@@ -153,7 +160,9 @@ export function mapSummary(raw: Raw): Summary {
 
 // ---------------------------------------------------------------- folders and library
 export function mapFolder(raw: Raw): Folder {
-  const count = raw.itemCount ?? raw.totalItems;
+  // GET /folders/{id} returns the contents instead of a count.
+  const contents = arr(raw.documents).length + arr(raw.quizzes).length + arr(raw.summaries).length;
+  const count = raw.itemCount ?? raw.totalItems ?? (raw.documents || raw.quizzes || raw.summaries ? contents : undefined);
   return { id: str(raw.id), name: str(raw.name), createdAt: str(raw.createdAt) || nowIso(), itemCount: count === undefined ? undefined : Number(count) };
 }
 
@@ -193,18 +202,31 @@ export function mapSource(raw: Raw): SourceRef | undefined {
 }
 
 export function mapMessage(raw: Raw): ChatMessage {
+  // The backend may cite several chunks from the same pages; show each distinct passage once.
+  const seen = new Set<string>();
+  const sources = (raw.source ? [raw.source] : arr(raw.sources))
+    .map(mapSource)
+    .filter((s): s is SourceRef => {
+      if (!s) return false;
+      const key = `${s.documentId ?? ''}|${s.pages}|${s.section ?? ''}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   return {
     id: str(raw.id) || `m-${Math.random().toString(36).slice(2, 10)}`,
     role: raw.role === 'user' ? 'user' : 'assistant',
     text: str(raw.content ?? raw.text ?? raw.answer),
-    source: mapSource(raw.source ?? arr(raw.sources)[0]),
+    source: sources[0],
+    sources,
   };
 }
 
-/** POST /conversations/{id}/messages may return the assistant message, or both messages. */
+/** POST /conversations/{id}/messages returns [userMessage, assistantMessage]. */
 export function pickAssistantReply(raw: Raw): ChatMessage {
+  const list = Array.isArray(raw) ? raw : arr(raw?.messages);
   const direct = raw?.assistantMessage ?? raw?.assistant ?? raw?.reply;
-  const fromList = arr(raw?.messages).filter((m) => m.role === 'assistant').pop();
+  const fromList = list.filter((m) => m.role === 'assistant').pop();
   const msg = direct ?? fromList ?? raw;
   return mapMessage({ ...msg, role: 'assistant', sources: msg.sources ?? raw?.sources, source: msg.source ?? raw?.source, content: msg.content ?? msg.text ?? msg.answer ?? raw?.answer });
 }
@@ -217,6 +239,19 @@ export function mapConversation(raw: Raw): Conversation {
     messages: arr(raw.messages).map(mapMessage),
     updatedAt: str(raw.updatedAt ?? raw.createdAt) || nowIso(),
   };
+}
+
+/** GET /chat/suggestions returns { suggestions: [{ title, prompt }] } (plain strings are accepted too). */
+export function mapSuggestions(raw: Raw): ChatSuggestion[] {
+  return listOf(raw, 'suggestions')
+    .map((s) => (typeof s === 'string' ? { title: s, prompt: s } : { title: str(s.title ?? s.prompt), prompt: str(s.prompt ?? s.title) }))
+    .filter((s) => s.title && s.prompt);
+}
+
+/** GET /folders/{id} returns { documents: [], quizzes: [], summaries: [] }. Flattened into library items. */
+export function mapFolderContents(raw: Raw, folderId: string): Resource[] {
+  const withType = (items: Raw[], type: ResourceType) => items.map((r) => mapResource({ ...r, type }, { folderId }));
+  return [...withType(arr(raw.documents), 'document'), ...withType(arr(raw.quizzes), 'quiz'), ...withType(arr(raw.summaries), 'summary')];
 }
 
 // ---------------------------------------------------------------- stats

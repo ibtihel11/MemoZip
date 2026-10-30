@@ -85,9 +85,19 @@ def submit_quiz_attempt(
         for question in questions:
             user_answer = answers_by_id[question.id]
             correct_answer = question.correct_answer
-
+            
             if question.type == "multiple_choice":
-                is_correct = user_answer.casefold() == correct_answer.casefold()
+                options = question.options or {}
+                correct_option_text = options.get(correct_answer)
+
+                normalized_user_answer = normalize_answer(user_answer)
+                is_correct = (
+                    normalized_user_answer == normalize_answer(correct_answer)
+                    or (
+                        correct_option_text is not None
+                        and normalized_user_answer == normalize_answer(correct_option_text)
+                    )
+                )
                 feedback = question.explanation
 
             elif question.type == "true_false":

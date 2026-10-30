@@ -84,15 +84,14 @@ All network code is in `src/services/api/`. Pages only import `api` from there.
 | chat.conversations.* / sendMessage / suggestions | GET/POST /conversations, GET/PATCH/DELETE /conversations/{id}, POST /conversations/{id}/messages, GET /chat/suggestions |
 | stats.get | GET /stats |
 
-Things the frontend assumes (check them against `/docs` when something looks empty or returns 422):
+How it matches the routers in `backend/app/api`:
 
-- `GET /documents/{id}` returns `topics` (list of `{id, name}`), `size_bytes` and `page_count`.
-- Login/register accept JSON `{email, password}` and `{name, email, password}`. If login uses OAuth2 form data (`username`), change `login()` in `auth.ts`.
-- A quiz question has `id, type, prompt, options, topic_id`. Correct answers and explanations may be hidden until submission: the graded attempt should then carry `correct_answer` and `explanation` on each answer, plus `topic_scores` (`topic_id`, `topic_name`, `score`) and `analysis_text`.
-- `POST .../attempts` takes `{attempt_id, answers: [{question_id, answer}]}`; unanswered questions are sent with an empty answer.
-- `POST /conversations/{id}/messages` takes `{content}` and returns the assistant message, with `sources` (`document_id`, `page_start`, `page_end`, `section`).
-- `GET /library` accepts `type`, `folder_id` and `q` (`resources.ts` sends a few spellings of each).
-- There is no `PATCH /auth/me` yet: quiz defaults are stored in the browser, and editing name or email shows "isn't available yet". Add the endpoint and it starts working with no frontend change.
+- **Session:** `deps.py` reads a Bearer token only, so the login response must contain `access_token` (kept in `localStorage`). Login is tried as JSON `{email, password}` first and, on a 422, as OAuth2 form data (`username`, `password`).
+- **Folders:** `GET /folders/{id}` returns `documents`, `quizzes` and `summaries`; the folder page flattens them (`GET /library` leaves documents out when `folderId` is set).
+- **AI Chat:** `POST /conversations/{id}/messages` returns `[userMessage, assistantMessage]`; the assistant message carries `sources`. `PATCH /conversations/{id}` only renames, so a chat's course is fixed when it starts (the selector is disabled afterwards) and its title is the first question. `GET /chat/suggestions` returns `{title, prompt}` pairs, which fill the message box.
+- **Answers** are rendered as Markdown (`components/Markdown.tsx`), and the distinct sources of an answer are shown as chips.
+- There is no `PATCH /auth/me` yet: quiz defaults are stored in the browser, and editing name or email shows "isn't available yet".
+- Quiz, attempt and summary payloads are read tolerantly in `mappers.ts`. In development, every failed request is logged to the browser console (`[api] METHOD /path -> status` plus the body).
 
 ## Accessibility
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Check, RotateCcw, Sparkles, TrendingDown, TrendingUp } from 'lucide-react';
+import { Check, RotateCcw, Sparkles, TrendingDown, TrendingUp, X } from 'lucide-react';
 import { ErrorState, LoadingState } from '@/components/States';
 import { TopicPerformance } from '@/components/TopicPerformance';
 import { SectionTitle } from '@/components/PageHeader';
@@ -38,7 +38,6 @@ export default function QuizResults() {
   const delta = previous ? a.score - previous.score : null;
 
   const weak = a.topicScores.filter((t) => t.score < WEAK_THRESHOLD).sort((x, y) => x.score - y.score);
-  const wrong = a.answers.filter((r) => !r.correct);
 
   const reviewWeak = async () => {
     setStarting(true);
@@ -57,7 +56,7 @@ export default function QuizResults() {
   };
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-5xl">
       <p className="mb-4 text-sm text-muted">
         <Link to={`/quizzes/${q.id}`} className="hover:text-fg hover:underline">{q.title}</Link>
         {ordered.length > 1 && ` · Attempt ${position + 1} of ${ordered.length}, ${formatShortDate(a.completedAt)}`}
@@ -121,35 +120,59 @@ export default function QuizResults() {
       )}
 
       <section className="mt-10" aria-labelledby="mistakes-title">
-        <SectionTitle><span id="mistakes-title">{wrong.length ? `Questions to review (${wrong.length})` : 'Questions to review'}</span></SectionTitle>
-        {wrong.length === 0 ? (
-          <Card className="p-6 text-center text-muted">No mistakes this time. Every answer was correct.</Card>
+        <SectionTitle><span id="mistakes-title">Your answers</span></SectionTitle>
+        {a.answers.length === 0 ? (
+          <Card className="p-6 text-center text-muted">The detailed answers for this attempt are not available.</Card>
         ) : (
           <ol className="space-y-4">
-            {wrong.map((r) => {
-              const question = q.questions.find((x) => x.id === r.questionId);
-              if (!question) return null;
-              const topic = a.topicScores.find((t) => t.topicId === question.topicId)?.topicName;
-              return (
-                <li key={r.questionId}>
-                  <Card className="p-5 sm:p-6">
-                    {topic && <Badge className="mb-3">{topic}</Badge>}
-                    <h3 className="font-semibold leading-snug">{question.prompt}</h3>
-                    <dl className="mt-4 space-y-3 text-[0.9375rem]">
-                      <div className="rounded-lg border border-warn/40 bg-warn/10 px-4 py-3">
-                        <dt className="text-sm font-medium text-warn-text">Your answer</dt>
-                        <dd className="mt-0.5">{r.answer.trim() || 'No answer'}</dd>
+            {[...a.answers]
+              .sort((x, y) => q.questions.findIndex((s) => s.id === x.questionId) - q.questions.findIndex((s) => s.id === y.questionId))
+              .map((r, index) => {
+                const question = q.questions.find((x) => x.id === r.questionId);
+                if (!question) return null;
+                const topic = a.topicScores.find((t) => t.topicId === question.topicId)?.topicName;
+                const correctAnswer = r.correctAnswer || question.correctAnswer;
+                const explanation = r.explanation || question.explanation;
+                return (
+                  <li key={r.questionId}>
+                    <Card className="p-5 sm:p-6">
+                      <div className="mb-3 flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-medium ${
+                            r.correct ? 'bg-mint/15 text-mint-text' : 'bg-warn/15 text-warn-text'
+                          }`}
+                        >
+                          {r.correct ? <Check size={14} aria-hidden="true" /> : <X size={14} aria-hidden="true" />}
+                          {r.correct ? 'Correct' : 'Incorrect'}
+                        </span>
+                        <span className="text-sm text-subtle">Question {index + 1}</span>
+                        {topic && <Badge>{topic}</Badge>}
                       </div>
-                      <div className="rounded-lg border border-mint/40 bg-mint/10 px-4 py-3">
-                        <dt className="text-sm font-medium text-mint-text">Correct answer</dt>
-                        <dd className="mt-0.5">{r.correctAnswer || question.correctAnswer}</dd>
-                      </div>
-                    </dl>
-                    <p className="mt-4 leading-relaxed text-muted"><span className="font-medium text-fg">Why: </span>{r.explanation || question.explanation}</p>
-                  </Card>
-                </li>
-              );
-            })}
+                      <h3 className="font-semibold leading-snug">{question.prompt}</h3>
+                      <dl className="mt-4 space-y-3 text-[0.9375rem]">
+                        <div
+                          className={`rounded-lg border px-4 py-3 ${r.correct ? 'border-mint/40 bg-mint/10' : 'border-warn/40 bg-warn/10'}`}
+                        >
+                          <dt className={`text-sm font-medium ${r.correct ? 'text-mint-text' : 'text-warn-text'}`}>Your answer</dt>
+                          <dd className="mt-0.5">{r.answer.trim() || 'No answer'}</dd>
+                        </div>
+                        {!r.correct && correctAnswer && (
+                          <div className="rounded-lg border border-mint/40 bg-mint/10 px-4 py-3">
+                            <dt className="text-sm font-medium text-mint-text">Correct answer</dt>
+                            <dd className="mt-0.5">{correctAnswer}</dd>
+                          </div>
+                        )}
+                      </dl>
+                      {explanation && (
+                        <p className="mt-4 leading-relaxed text-muted">
+                          <span className="font-medium text-fg">Why: </span>
+                          {explanation}
+                        </p>
+                      )}
+                    </Card>
+                  </li>
+                );
+              })}
           </ol>
         )}
       </section>

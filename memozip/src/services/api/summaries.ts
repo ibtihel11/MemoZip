@@ -17,7 +17,7 @@ export const summaries = {
   get: getSummary,
 
   async generate(documentId: string): Promise<Summary> {
-    const summary = await complete(await http(`/documents/${documentId}/summary`, { method: 'POST' }));
+    const summary = await complete(await http(`/documents/${documentId}/summary`, { method: 'POST', timeoutMs: 120_000 }));
     notify();
     return summary;
   },

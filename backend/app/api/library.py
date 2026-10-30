@@ -414,13 +414,14 @@ def get_library(item_type: str | None = Query(
             document = db.get(Document, summary.document_id)
 
             items.append({
-                "id": str(summary.id),
-                "type": "summary",
-                "title": summary.title,
-                "document_id": str(summary.document_id),
-                "document_title": document.title if document else None,
-                "folder_id": str(summary.folder_id) if summary.folder_id else None,
-                "created_at": summary.created_at,
+                "id": str(document.id),
+                "type": "document",
+                "title": document.title,
+                "status": document.status,
+                "document_id": str(document.id),
+                "page_count": document.page_count,
+                "folder_id": str(document.folder_id) if document.folder_id else None,
+                "created_at": document.created_at,
             })
 
     items.sort(

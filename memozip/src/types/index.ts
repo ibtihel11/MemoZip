@@ -150,7 +150,16 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   text: string;
+  /** The first source, kept for convenience. */
   source?: SourceRef;
+  /** Every distinct passage the answer used. */
+  sources?: SourceRef[];
+}
+
+/** A starter prompt: `title` is the chip label, `prompt` fills the message box. */
+export interface ChatSuggestion {
+  title: string;
+  prompt: string;
 }
 
 /** A saved AI Chat conversation. `scope` is 'all' or a document id. */

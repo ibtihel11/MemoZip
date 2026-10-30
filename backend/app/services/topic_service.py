@@ -6,6 +6,7 @@ from app.models.document import Document
 from app.models.document_chunk import DocumentChunk
 from app.models.topic import Topic
 from app.services.llm_service import extract_topics
+from app.services.text_budget import sample_text
 
 def extract_and_save_topics(document_id: UUID, user_id: UUID, db: Session) -> dict:
     document = db.query(Document).filter(
@@ -26,7 +27,7 @@ def extract_and_save_topics(document_id: UUID, user_id: UUID, db: Session) -> di
     if not chunks:
         raise ValueError("The document has no text chunks")
 
-    document_text = "\n\n".join(chunk.content for chunk in chunks)
+    document_text = sample_text([chunk.content for chunk in chunks]).strip()
     extracted = extract_topics(document_text)
 
     try:

@@ -34,7 +34,15 @@ async function me(): Promise<User> {
 }
 
 async function login(email: string, password: string): Promise<User> {
-  captureTokens(await http('/auth/login', { method: 'POST', json: { email, password } }));
+  let response: unknown;
+  try {
+    response = await http('/auth/login', { method: 'POST', json: { email, password } });
+  } catch (e) {
+    // FastAPI's OAuth2 login expects form fields (username/password) instead of JSON.
+    if (!(e instanceof ApiError) || e.status !== 422) throw e;
+    response = await http('/auth/login', { method: 'POST', form: new URLSearchParams({ username: email, password }) });
+  }
+  captureTokens(response);
   return me();
 }
 

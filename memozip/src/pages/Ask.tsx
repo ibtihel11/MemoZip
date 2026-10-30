@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { BookOpen, Send, Sparkles } from 'lucide-react';
 import { ErrorState, LoadingState } from '@/components/States';
 import { BackLink } from '@/components/PageHeader';
+import { Markdown } from '@/components/Markdown';
 import { Select } from '@/components/ui/Select';
 import { usePageTitle } from '@/hooks/usePageTitle';
 import { useQuery } from '@/hooks/useQuery';
@@ -22,6 +23,7 @@ export default function Ask() {
   const [thinking, setThinking] = useState(false);
   const [failed, setFailed] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   // The backend keeps every question and answer in a conversation scoped to this course.
   const conversationId = useRef<string | null>(null);
   usePageTitle('Ask about your course');
@@ -41,7 +43,7 @@ export default function Ask() {
     setFailed(false);
     setThinking(true);
     try {
-      const convId = (conversationId.current ??= (await api.chat.conversations.create(id)).id);
+      const convId = (conversationId.current ??= (await api.chat.conversations.create(id, question.length > 60 ? `${question.slice(0, 57).trimEnd()}…` : question)).id);
       const reply = await api.chat.sendMessage(convId, question);
       setMessages((m) => [...m, reply]);
     } catch {
@@ -63,7 +65,7 @@ export default function Ask() {
   };
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-13rem)] max-w-3xl flex-col">
+    <div className="mx-auto flex min-h-[calc(100vh-13rem)] max-w-4xl flex-col">
       <BackLink to={`/documents/${id}`}>Back to course</BackLink>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -89,12 +91,16 @@ export default function Ask() {
             <div className="mt-3 flex flex-wrap gap-2">
               {(suggestions.data ?? []).map((s) => (
                 <button
-                  key={s}
+                  key={s.title}
                   type="button"
-                  onClick={() => void ask(s)}
+                  title={s.prompt}
+                  onClick={() => {
+                    setInput(s.prompt);
+                    inputRef.current?.focus();
+                  }}
                   className="rounded-full border border-border bg-surface px-4 py-2 text-left text-sm transition hover:border-accent/60 hover:bg-surface2"
                 >
-                  {s}
+                  {s.title}
                 </button>
               ))}
             </div>
@@ -114,16 +120,18 @@ export default function Ask() {
                   </span>
                   <div className="min-w-0">
                     <p className="sr-only">Answer</p>
-                    <p className="text-[1.0625rem] leading-8">{m.text}</p>
-                    {m.source && (
-                      <p className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-muted">
-                        <BookOpen size={15} className="text-accent-text" aria-hidden="true" />
-                        <span>
-                          <span className="font-medium text-fg">Based on your course</span> · Pages {m.source.pages}
-                          {m.source.section ? ` · ${m.source.section}` : ''}
-                        </span>
-                      </p>
-                    )}
+                    <Markdown text={m.text} />
+                    <div className="flex flex-wrap gap-2">
+                      {(m.sources ?? []).slice(0, 3).map((s) => (
+                        <p key={`${s.pages}-${s.section}`} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-muted">
+                          <BookOpen size={15} className="text-accent-text" aria-hidden="true" />
+                          <span>
+                            <span className="font-medium text-fg">Based on your course</span>{s.pages !== '—' ? ` · Pages ${s.pages}` : ''}
+                            {s.section ? ` · ${s.section}` : ''}
+                          </span>
+                        </p>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
@@ -147,6 +155,7 @@ export default function Ask() {
         <div className="flex items-end gap-2">
           <textarea
             id="question"
+            ref={inputRef}
             rows={1}
             value={input}
             onChange={(e) => setInput(e.target.value)}

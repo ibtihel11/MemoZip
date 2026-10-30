@@ -71,9 +71,11 @@ type QueryValue = string | number | boolean | null | undefined;
 export interface RequestOptions extends Omit<RequestInit, 'body'> {
   /** JSON body. Keys are converted to snake_case. */
   json?: unknown;
-  /** Multipart body (file upload). */
-  form?: FormData;
+  /** Multipart body (file upload) or URL-encoded form (OAuth2-style login). */
+  form?: FormData | URLSearchParams;
   query?: Record<string, QueryValue>;
+  /** Abort the request after this many milliseconds (for slow AI calls). */
+  timeoutMs?: number;
 }
 
 const NO_REFRESH = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/logout'];
@@ -87,7 +89,7 @@ function buildUrl(path: string, query?: Record<string, QueryValue>): string {
   return `${API_BASE_URL}${path}${qs ? `?${qs}` : ''}`;
 }
 
-function send(path: string, { json, form, query, ...init }: RequestOptions): Promise<Response> {
+function send(path: string, { json, form, query, timeoutMs, ...init }: RequestOptions): Promise<Response> {
   const headers = new Headers(init.headers);
   if (json !== undefined) headers.set('Content-Type', 'application/json');
   const access = readTokens().access;
@@ -96,6 +98,7 @@ function send(path: string, { json, form, query, ...init }: RequestOptions): Pro
     ...init,
     headers,
     credentials: 'include',
+    signal: timeoutMs ? AbortSignal.timeout(timeoutMs) : init.signal,
     body: form ?? (json !== undefined ? JSON.stringify(snakeizeKeys(json)) : undefined),
   });
 }
@@ -141,21 +144,24 @@ async function errorMessage(res: Response): Promise<string> {
 }
 
 const NETWORK_ERROR = "We can't reach MemoZip right now. Check your connection and try again.";
+const TIMEOUT_ERROR = 'This is taking longer than expected. Please try again in a moment.';
+
+const failure = (e: unknown) => (e instanceof DOMException && e.name === 'TimeoutError' ? new ApiError(TIMEOUT_ERROR, 504) : new ApiError(NETWORK_ERROR, 0));
 
 export async function http<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
   let res: Response;
   try {
     res = await send(path, options);
-  } catch {
-    throw new ApiError(NETWORK_ERROR, 0);
+  } catch (e) {
+    throw failure(e);
   }
 
   if (res.status === 401 && !NO_REFRESH.includes(path)) {
     if (await refreshSession()) {
       try {
         res = await send(path, options);
-      } catch {
-        throw new ApiError(NETWORK_ERROR, 0);
+      } catch (e) {
+        throw failure(e);
       }
     }
     if (res.status === 401) {
@@ -164,7 +170,13 @@ export async function http<T = unknown>(path: string, options: RequestOptions = 
     }
   }
 
-  if (!res.ok) throw new ApiError(await errorMessage(res), res.status);
+  if (!res.ok) {
+    if (import.meta.env.DEV) {
+      // Handy while wiring the backend: shows exactly what the API answered.
+      console.warn(`[api] ${options.method ?? 'GET'} ${path} -> ${res.status}`, await res.clone().text().catch(() => ''));
+    }
+    throw new ApiError(await errorMessage(res), res.status);
+  }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
   return (text ? camelizeKeys(JSON.parse(text)) : undefined) as T;

@@ -22,9 +22,9 @@ const difficultyOptions: { value: Difficulty; label: string }[] = [
 ];
 const countOptions = [5, 10, 15, 20].map((n) => ({ value: String(n), label: `${n} questions` }));
 
-function Section({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
+function Section({ title, description, children, className }: { title: string; description?: string; children: ReactNode; className?: string }) {
   return (
-    <Card className="p-5 sm:p-6">
+    <Card className={cn('p-5 sm:p-6', className)}>
       <h2 className="text-lg font-semibold">{title}</h2>
       {description && <p className="mt-1 text-sm text-muted">{description}</p>}
       <div className="mt-5">{children}</div>
@@ -80,11 +80,11 @@ export default function Settings() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-5xl">
       <PageHeader title="Settings" subtitle="Make MemoZip feel like yours." />
 
-      <div className="space-y-5">
-        <Section title="Appearance" description="Three complete palettes. The change applies instantly and is remembered on this device.">
+      <div className="grid gap-5 xl:grid-cols-2">
+        <Section className="xl:col-span-2" title="Appearance" description="Three complete palettes. The change applies instantly and is remembered on this device.">
           <fieldset>
             <legend className="sr-only">Color theme</legend>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -156,7 +156,7 @@ export default function Settings() {
           <p role="status" className="mt-3 h-5 text-sm text-mint-text">{prefSaved ? 'Preferences saved' : ''}</p>
         </Section>
 
-        <Section title="Session">
+        <Section className="xl:col-span-2" title="Session">
           <Button
             variant="secondary"
             icon={<LogOut size={16} aria-hidden="true" />}

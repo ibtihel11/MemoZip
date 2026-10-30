@@ -82,7 +82,7 @@ export default function Library() {
           <p className="mb-3 text-sm text-subtle" aria-live="polite">
             {resources.data.length} {resources.data.length === 1 ? 'item' : 'items'}
           </p>
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {resources.data.map((r) => (
               <li key={`${r.type}-${r.id}`}>
                 <ResourceCard resource={r} menu={getMenu(r)} folderName={folderName(r.folderId)} />

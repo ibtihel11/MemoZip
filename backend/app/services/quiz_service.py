@@ -9,7 +9,7 @@ from app.models.quiz import Quiz
 from app.models.question import Question
 from app.models.quiz_focus_topic import QuizFocusTopic
 from app.services.llm_service import generate_quiz
-
+from app.services.text_budget import sample_text
 
 def create_quiz(document_id: UUID, user_id: UUID, question_count: int, difficulty: str, question_types: list[str], db: Session) -> dict:
     document = db.query(Document).filter(
@@ -40,7 +40,7 @@ def create_quiz(document_id: UUID, user_id: UUID, question_count: int, difficult
     if not topics:
         raise ValueError("Extract topics before generating a quiz")
 
-    document_text = "\n\n".join(chunk.content for chunk in chunks)
+    document_text = sample_text([chunk.content for chunk in chunks]).strip()
 
     generated = generate_quiz(
         document_text=document_text,

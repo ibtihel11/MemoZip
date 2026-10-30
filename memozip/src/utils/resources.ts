@@ -17,7 +17,7 @@ export function resourcePath(r: Pick<Resource, 'type' | 'id'>): string {
 
 /** Third line of a resource card: score, page count and date. */
 export function resourceMeta(r: Resource): string {
-  if (r.type === 'document') return `${r.pages ?? 0} pages · Uploaded ${formatRelative(r.date)}`;
+  if (r.type === 'document') return `${r.pages ? `${r.pages} pages · ` : ''}Uploaded ${formatRelative(r.date)}`;
   if (r.type === 'summary') return `Saved ${formatRelative(r.date)}`;
   if (r.score !== undefined && r.lastAttemptAt) return `${r.score}% · Last attempted ${formatRelative(r.lastAttemptAt)}`;
   return `${r.questionCount ?? 0} questions · Saved ${formatRelative(r.date)}`;

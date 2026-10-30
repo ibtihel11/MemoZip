@@ -48,7 +48,7 @@ export default function DocumentPage() {
         }
       />
 
-      {d.status === 'processing' && <ProcessingBanner onTick={doc.refetch} />}
+      {(d.status === 'processing' || d.status === 'uploaded') && <ProcessingBanner onTick={doc.refetch} />}
       {d.status === 'failed' && <FailedBanner documentId={d.id} message={d.errorMessage} />}
 
       <Card className="p-6">

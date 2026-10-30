@@ -2,7 +2,7 @@ import type { Resource, ResourceType } from '@/types';
 import { notify } from '../invalidate';
 import { documents } from './documents';
 import { http } from './http';
-import { listOf, mapResource } from './mappers';
+import { listOf, mapFolderContents, mapResource } from './mappers';
 import { quizzes } from './quizzes';
 import { summaries } from './summaries';
 
@@ -15,15 +15,14 @@ export const resources = {
     const { type, folderId } = filter;
     const q = filter.query?.trim();
 
-    // A folder on its own: the dedicated endpoint is guaranteed to be scoped to that folder.
+    // A folder on its own: GET /folders/{id} returns its documents, quizzes and summaries
+    // (GET /library leaves documents out when a folder filter is set).
     if (folderId && !type && !q) {
-      const raw = await http(`/library/folders/${folderId}`);
-      return listOf(raw).map((r) => mapResource(r, { folderId })).sort(byNewest);
+      return mapFolderContents(await http(`/folders/${folderId}`), folderId).sort(byNewest);
     }
 
-    // Both spellings of each filter are sent so it works whichever the backend declares
-    // (see /docs for GET /api/library); delete the ones you do not need.
-    const raw = await http('/library', { query: { type, q, query: q, folder_id: folderId, folderId } });
+    // GET /api/library declares these query names (note the camelCase alias for folderId).
+    const raw = await http('/library', { query: { type, q, folderId } });
     return listOf(raw).map((r) => mapResource(r)).sort(byNewest);
   },
 

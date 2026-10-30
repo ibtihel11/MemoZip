@@ -25,7 +25,10 @@ async function getQuiz(id: string): Promise<Quiz> {
 }
 
 async function getAttempt(attemptId: string): Promise<QuizAttempt> {
-  return mapAttempt(await http(`${base}/attempts/${attemptId}`));
+  const raw = await http(`${base}/attempts/${attemptId}`);
+  // Development aid: shows the exact payload when results look wrong (copy it from the console).
+  if (import.meta.env.DEV) console.info('[api] attempt payload', raw);
+  return mapAttempt(raw);
 }
 
 export const quizzes = {
@@ -39,6 +42,7 @@ export const quizzes = {
   async generate(config: QuizConfig): Promise<Quiz> {
     const raw = await http(`/documents/${config.documentId}/quizzes`, {
       method: 'POST',
+      timeoutMs: 120_000,
       json: {
         questionCount: config.count,
         difficulty: config.difficulty,
@@ -47,10 +51,16 @@ export const quizzes = {
         ...(config.topicIds?.length ? { topicIds: config.topicIds } : {}),
       },
     });
-    const quiz = mapQuiz(raw);
+    const created = mapQuiz(raw);
+    // Generated quizzes go straight to the Library (the backend lists saved quizzes only).
+    try {
+      await http(`${base}/${created.id}/save`, { method: 'PATCH', json: { isSaved: true } });
+    } catch {
+      /* the Save button on the quiz page still works */
+    }
     notify();
     // Some backends answer with just the new quiz's id; load the full quiz in that case.
-    return quiz.questions.length > 0 ? quiz : getQuiz(quiz.id);
+    return created.questions.length > 0 ? { ...created, saved: true } : getQuiz(created.id);
   },
 
   startAttempt,
@@ -76,7 +86,10 @@ export const quizzes = {
   },
 
   async attempts(quizId: string): Promise<QuizAttempt[]> {
-    return listOf(await http(`${base}/${quizId}/attempts`), 'attempts').map(mapAttempt);
+    // Opening a quiz creates an unfinished attempt; only completed ones belong in the history.
+    return listOf(await http(`${base}/${quizId}/attempts`), 'attempts')
+      .filter((r) => !('completedAt' in r) || r.completedAt)
+      .map(mapAttempt);
   },
 
   attempt: getAttempt,
